@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="complete_mission" type="servo.py" name="servo_control_subscriber" output="screen">
+  </node>
+</launch>

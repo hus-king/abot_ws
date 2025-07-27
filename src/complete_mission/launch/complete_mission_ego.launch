@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="complete_mission" type="ego_planner_collision" name="" output="screen">
+    <rosparam command="load" file="$(find complete_mission)/config/complete_mission.yaml" />
+  </node>
+</launch>

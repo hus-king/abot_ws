@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="complete_mission" type="gjs" name="" output="screen">
+    <rosparam command="load" file="$(find complete_mission)/config/gjs.yaml" />
+  </node>
+</launch>

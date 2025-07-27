@@ -1,0 +1,29 @@
+target_qr_x : 1.0
+target_qr_y : 0.0
+
+# the first door
+target1_x : 1.0
+target1_y : 1.0
+# ar
+target2_x : 3.0
+target2_y : 1.0
+target3_x : 3.6
+target3_y : -1.0
+target4_x : 1.8
+target4_y : -1.0
+
+# the last ar
+target5_x : 5.2
+target5_y : 1.0
+
+target6_x : 0.0
+target6_y : 0.0
+
+
+target_ring_x : 0.0
+target_ring_y : 0.0
+
+
+# fly height
+fly_height : 0.6
+err_max : 0.1

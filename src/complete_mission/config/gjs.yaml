@@ -1,0 +1,86 @@
+box1_x : 3.2
+box1_y : 0.0
+
+box2_x : 3.2
+box2_y : 0.9
+
+box3_x : 5.25
+box3_y : 0.9
+
+box4_x : 5.25
+box4_y : -0.9
+
+box5_x : 3.2
+box5_y : -0.9
+
+spin_flag : 1
+
+#if_point: 1.position 0.view
+#if_safe: 0.view/unsafe 1.safe
+
+if_point: 0
+if_safe: 0
+point1: 0
+point2: 0
+point3: 1
+point4: 1
+
+target_qr_x : 1.85
+target_qr_y : 0.00
+
+target1_x : 1.10
+target1_y : -0.58
+
+target2_x : 3.35
+target2_y : 0.15
+
+target3_x : 6.18
+target3_y : -2.09
+
+target4_x : 4.80
+target4_y : 1.62
+
+# the last ar
+target5_x : 0.00
+target5_y : 0.00
+
+target6_x : 0.00
+target6_y : 0.00
+
+park_left_x: -0.08
+park_left_y: 1.6
+park_right_x: -0.08
+park_right_y: -1.6
+
+target_ring_x : 6.05
+target_ring_y : 0.5
+
+ring_back_x : 6.05
+ring_back_y : -2.4
+
+# fly height
+fly_height : 0.6
+err_max : 0.1
+
+check_catapult_x : 0.025
+check_catapult_y : 0.015
+track_distance : 0.2
+
+qr_msg1 : raccoon
+qr_msg2 : squirrel
+qr_msg3 : right
+
+#ring params
+align_threshold : 5
+adjust_step : 0.05
+backward_step : 0.1
+max_backward : 0.5
+through_distance : 3.0
+
+sigma_a : 0.1
+tank_time : 0
+tank_shred : 0
+
+camera_height : 0.075
+
+err_max_ego : 0.2

@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="complete_mission" type="ros_navigation" name="" output="screen">
+    <rosparam command="load" file="$(find complete_mission)/config/ros_navigation.yaml" />
+  </node>
+</launch>

@@ -1,0 +1,32 @@
+<launch>
+    <!-- 前置摄像头OCR -->
+    <node pkg="paddle_ocr_ros" type="paddle_ocr_node.py" name="front_ocr" output="screen">
+
+        <!-- 前置摄像头的图像发布话题 -->
+        <param name="image_topic" value="/camera/rgb/image_raw"/>
+        <!-- 前视摄像头OCR的控制话题 -->
+        <param name="ctrl_topic" value="/ocr_ctrl/front"/>
+
+        <param name="pub_topic" value="/ocr_results/front"/>
+        <param name="det_model_dir" value="$(find paddle_ocr_ros)/models/en_PP-OCRv3_det_infer"/>
+        <param name="rec_model_dir" value="$(find paddle_ocr_ros)/models/en_PP-OCRv3_rec_infer"/>
+        <!-- 是否执行可视化 -->
+        <param name="visualize" value= "True"/>
+    </node>
+
+    <!-- 下视摄像头OCR -->
+    <node pkg="paddle_ocr_ros" type="paddle_ocr_node.py" name="downward_ocr" output="screen">
+    
+        <!-- 下视摄像头的图像发布话题 -->
+        <param name="image_topic" value="/usb_cam/image_raw"/>
+        <!-- 下视摄像头OCR的控制话题 -->
+        <param name="ctrl_topic" value="/ocr_ctrl/down"/>
+
+        <param name="pub_topic" value="/ocr_results/down"/>
+        <param name="det_model_dir" value="$(find paddle_ocr_ros)/models/en_PP-OCRv3_det_infer"/>
+        <param name="rec_model_dir" value="$(find paddle_ocr_ros)/models/en_PP-OCRv3_rec_infer"/>
+
+        <!-- 是否执行可视化 -->
+        <param name="visualize" value= "True"/>
+    </node>
+</launch>

@@ -1,0 +1,18 @@
+<launch>
+    <node pkg="paddle_ocr_ros" type="paddle_ocr_node.py" name="paddle_ocr" output="screen">
+        <!-- 模型路径 -->
+        
+        <param name="det_model_dir" value="$(find paddle_ocr_ros)/models/en_PP-OCRv3_det_infer"/>
+        <param name="rec_model_dir" value="$(find paddle_ocr_ros)/models/en_PP-OCRv3_rec_infer"/>
+        
+        <!-- 输入图像话题 -->
+        <param name="image_topic" value="/usb_cam/image_raw"/>
+        <!-- 发布识别信息话题 -->
+        <param name="pub_topic" value="/ocr_results"/>
+
+        <param name="ctrl_topic" value="/ocr_ctrl"/>
+
+        <!-- 是否执行可视化 -->
+        <param name="visualize" value= "True"/>
+    </node>
+</launch>

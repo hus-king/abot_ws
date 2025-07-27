@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="complete_mission" type="way_point" name="" output="screen">
+    <rosparam command="load" file="$(find complete_mission)/config/way_point.yaml" />
+  </node>
+</launch>

@@ -1,0 +1,39 @@
+# the first door
+target1_x : 2.3
+target1_y : 0.26
+# ar
+target2_x : 3.5
+target2_y : 0.5
+target3_x : 1.75
+target3_y : 1.73
+target4_x : 3.4
+target4_y : 2.1
+
+# between 4 and 5
+tmp_target_x : 2.5
+tmp_target_y : 2.1
+
+# the last ar
+target5_x : 3.25
+target5_y : 3.75
+
+# the second door
+target6_x : 2.6
+target6_y : 3.5
+
+# land
+target7_x : 0
+target7_y : 3.25
+
+# land ar_id
+land_marker_id : 7
+
+# ar track speed
+track_speed : 0.08
+
+# ar_track_err_max
+ar_track_err_max : 0.08
+
+# cross door pos_x
+first_track_pos_x : 3.0
+second_track_pos_x : -2.6

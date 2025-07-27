@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="complete_mission" type="video_test_node" name="" output="screen">
+    <rosparam command="load" file="$(find complete_mission)/config/video_test.yaml" />
+  </node>
+</launch>
