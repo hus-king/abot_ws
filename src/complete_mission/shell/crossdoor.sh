@@ -15,8 +15,8 @@ tmux split-window -v -t ros_session:0.1
 tmux send-keys -t ros_session:0.2 'sleep 4; rostopic echo /mavros/local_position/pose' C-m
 
 # Pane 3: complete_mission crossdoor.launch
-tmux.split-window -v -t ros_session:0.2
-tmux.send-keys -t ros_session:0.3 'sleep 6; roslaunch complete_mission crossdoor.launch' C-m
+tmux split-window -v -t ros_session:0.2
+tmux send-keys -t ros_session:0.3 'sleep 6; roslaunch complete_mission crossdoor.launch' C-m
 
 # 自动整理布局为平铺
 tmux select-layout -t ros_session:0 tiled
