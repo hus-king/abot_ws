@@ -190,8 +190,9 @@ bool current_position_cruise(float x, float y, float z, float yaw, float error_m
 //3、函数定义
 *************************************************************************/
 bool start_checking = false;//是否开始yolo检测
-bool found = false;//是否发现特定目标
+bool found = false;//是否累计10次发现固定靶子
 bool found_false = false; // 发现错误目标
+bool found_tank = false; // 是否累计十次发现移动靶子
 
 std::string have_found;
 float box_target_x;
@@ -207,46 +208,17 @@ std::string target_data[2] = {"car","bridge"};  // 只检测car和bridge
 // 累计检测计数器
 int car_detect_count = 0;
 int bridge_detect_count = 0;
-int false_detect_count = 0;  // 错误目标检测计数器
+int tank_detect_count = 0;  // 坦克检测计数器（用于单独判断）
+int false_detect_count = 0;  // 错误目标检测计数器（不是car/bridge的都算错误）
 const int DETECT_THRESHOLD = 10;  // 需要累计检测10次才算找到
 const int FALSE_THRESHOLD = 10;   // 连续10次错误检测则found_false为true
-
-
-// void reset_yolo(){
-// 	start_checking = false;
-// 	found = false;
-// 	for(int i=0;i<100;i++){
-// 		windows[i] = 0;
-// 	}
-// 	win_count = 0;
-// 	have_found = "";
-// }
-
-// void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){    
-//     if(!start_checking) return;
-// 	found = false;   
-//     for(yolov8_ros_msgs::BoundingBox bounding_box:msg->bounding_boxes)
-//     {        
-//     	std::cout<<"CLASS: "<<bounding_box.Class<<std::endl;
-// 		if(bounding_box.Class.empty()) continue; // 如果类别为空，跳过该框
-// 		else {
-// 			for(int i=0;i<100;i++){
-// 				if(bounding_box.Class == classes[i]){
-// 					windows[i]+=bounding_box.confidence;
-// 					break;
-// 				}
-// 			}
-// 		}
-//     }
-
-// }
-
 
 void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){    
     if(!start_checking) {
         // 重置检测计数器
         car_detect_count = 0;
         bridge_detect_count = 0;
+        tank_detect_count = 0;
         false_detect_count = 0;
         return;
     }
@@ -254,8 +226,7 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
     // 临时标记本次是否检测到目标
     bool car_detected_this_frame = false;
     bool bridge_detected_this_frame = false;
-    bool valid_target_detected = false;  // 是否检测到有效目标
-    bool any_target_detected = false;    // 是否检测到任何目标
+    bool tank_detected_this_frame = false;
     
     for(yolov8_ros_msgs::BoundingBox bounding_box:msg->bounding_boxes)
     {        
@@ -265,10 +236,9 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
 		std::cout<<"probability: "<<bounding_box.probability<<std::endl;
 		cb.probability = bounding_box.probability;
 		if(bounding_box.Class.empty()) continue; // 如果类别为空，跳过该框
-		
-        any_target_detected = true;  // 检测到任何目标
         
         // 检查是否为car或bridge且之前未找到
+		bool is_target_found = false;
 		for(int i = 0; i < 2; i++){
             string target = target_data[i];
 			if(target == bounding_box.Class)
@@ -276,10 +246,10 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
                 // 检查是否已经找到过该目标
                 if((target == "car" && car_found) || (target == "bridge" && bridge_found)) {
                     std::cout << "已找到过" << target << "，忽略该检测" << std::endl;
+                    is_target_found = true;
                     break;  // 已找到过，不处理
                 }
                 
-                valid_target_detected = true;  // 检测到有效目标
 				have_found = target;
                 
                 // 计算目标位置
@@ -297,28 +267,47 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
                     bridge_detected_this_frame = true;
                 }
                 
+                is_target_found = true;
 				break;
 			}
+		}
+		
+		// 单独检测tank（tank不算作有效目标，但需要单独计数）
+		if(bounding_box.Class == "tank") {
+		    tank_detected_this_frame = true;
+			have_found = "tank";
+			// 计算目标位置
+			float center_x = bounding_box.xmin;
+			float center_y = bounding_box.ymin;
+			box_target_x = (cy - center_y) * (local_pos.pose.pose.position.z + camera_height) / fy + local_pos.pose.pose.position.x;
+			box_target_y = (cx - center_x) * (local_pos.pose.pose.position.z + camera_height) / fx + local_pos.pose.pose.position.y;
+			std::cout << "tank center_x = " << center_x << ", center_y = " << center_y << std::endl;
+			std::cout << "tank calculate_box_target_x = " << box_target_x << ", calculate_box_target_y = " << box_target_y << std::endl;
+
+		}
+		
+		// 如果不是car或bridge，增加错误检测计数（包括tank）
+		if(!is_target_found) {
+		    false_detect_count++;
+		    std::cout << "检测到非目标类别: " << bounding_box.Class << "，错误检测次数: " << false_detect_count << "/" << FALSE_THRESHOLD << std::endl;
 		}
     }
     
     // 更新检测计数器
     if(car_detected_this_frame) {
         car_detect_count++;
-        false_detect_count = 0;  // 重置错误检测计数
         std::cout << "car检测次数: " << car_detect_count << "/" << DETECT_THRESHOLD << std::endl;
     } else if(bridge_detected_this_frame) {
         bridge_detect_count++;
-        false_detect_count = 0;  // 重置错误检测计数
         std::cout << "bridge检测次数: " << bridge_detect_count << "/" << DETECT_THRESHOLD << std::endl;
-    } else if(any_target_detected && !valid_target_detected) {
-        // 检测到目标但不是有效目标（不是car/bridge或已找到过）
-        false_detect_count++;
-        std::cout << "错误目标检测次数: " << false_detect_count << "/" << FALSE_THRESHOLD << std::endl;
-    } else {
-        // 没有检测到任何目标，重置错误检测计数
-        false_detect_count = 0;
+    }    
+    // 单独更新tank检测计数器
+    if(tank_detected_this_frame) {
+        tank_detect_count++;
+        std::cout << "tank检测次数: " << tank_detect_count << "/" << DETECT_THRESHOLD << std::endl;
     }
+    
+    // 注意：tank仍算作错误目标
     
     // 判断是否达到检测阈值
     if(car_detect_count >= DETECT_THRESHOLD && !car_found) {
@@ -331,6 +320,12 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
         bridge_found = true;
         found = true;
         std::cout << "累计检测到bridge " << DETECT_THRESHOLD << " 次，确认找到bridge!" << std::endl;
+    }
+    
+    // 单独判断tank检测
+    if(tank_detect_count >= DETECT_THRESHOLD) {
+        found_tank = true;
+        std::cout << "累计检测到tank " << DETECT_THRESHOLD << " 次，确认找到tank!" << std::endl;
     }
     
     // 判断是否达到错误检测阈值
@@ -587,7 +582,7 @@ bool Kalman_prediction()
   }
   Eigen::Vector2d detection;
   bool newDetectionAvailable;
-  if(found && have_found == "tank")
+  if(found_tank && have_found == "tank")
   {
   	newDetectionAvailable = true;
 	detection(0) = box_target_x;
