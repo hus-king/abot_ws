@@ -30,7 +30,8 @@ using namespace std;
 #define VIEW_ALTITUDE 1.8
 #define QR_ALTITUDE 0.40
 #define RING_HEIGHT 1.50
-#define TANK_ALTITUDE 2.5
+#define TANK_ALTITUDE 2.0
+#define PUT_TANK_ALTITUDE 1.5
 
 mavros_msgs::PositionTarget setpoint_raw;
 ros::Publisher planner_goal_pub;
@@ -289,22 +290,22 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
 		// 如果不是car或bridge，增加错误检测计数（包括tank）
 		if(!is_target_found) {
 		    false_detect_count++;
-		    std::cout << "检测到非目标类别: " << bounding_box.Class << "，错误检测次数: " << false_detect_count << "/" << FALSE_THRESHOLD << std::endl;
+		    std::cout << "本次检测到非目标类别: " << bounding_box.Class << "，错误检测次数: " << false_detect_count << "/" << FALSE_THRESHOLD << std::endl;
 		}
     }
     
     // 更新检测计数器
     if(car_detected_this_frame) {
         car_detect_count++;
-        std::cout << "car检测次数: " << car_detect_count << "/" << DETECT_THRESHOLD << std::endl;
+		std::cout<< "本次检测到car,累计次数: " << car_detect_count << "/" << DETECT_THRESHOLD << std::endl;
     } else if(bridge_detected_this_frame) {
         bridge_detect_count++;
-        std::cout << "bridge检测次数: " << bridge_detect_count << "/" << DETECT_THRESHOLD << std::endl;
+        std::cout<< "本次检测到bridge,累计次数: " << bridge_detect_count << "/" << DETECT_THRESHOLD << std::endl;
     }    
     // 单独更新tank检测计数器
     if(tank_detected_this_frame) {
         tank_detect_count++;
-        std::cout << "tank检测次数: " << tank_detect_count << "/" << DETECT_THRESHOLD << std::endl;
+        std::cout<< "本次检测到tank,累计次数: " << tank_detect_count << "/" << DETECT_THRESHOLD << std::endl;
     }
     
     // 注意：tank仍算作错误目标
@@ -582,7 +583,7 @@ bool Kalman_prediction()
   }
   Eigen::Vector2d detection;
   bool newDetectionAvailable;
-  if(found_tank && have_found == "tank")
+  if(found_tank)
   {
   	newDetectionAvailable = true;
 	detection(0) = box_target_x;
