@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="complete_mission" type="crossdoor" name="" output="screen">
+  </node>
+</launch>
