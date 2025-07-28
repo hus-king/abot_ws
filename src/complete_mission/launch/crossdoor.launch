@@ -1,4 +1,5 @@
 <launch>
   <node pkg="complete_mission" type="crossdoor" name="" output="screen">
+      <rosparam command="load" file="$(find complete_mission)/config/crossdoor.yaml" />
   </node>
 </launch>
