@@ -5,6 +5,8 @@
 int mission_num = 0;   //mission_flag
 
 float target_x = 4.0, target_y = 0;
+float target1_x , target1_y;
+float err_yaw;
 
 float err_max = 0.2;
 float err_max_ego = 0.2;
@@ -69,6 +71,9 @@ int main(int argc, char **argv)
   nh.param<float>("camera_height", camera_height, 0);
   nh.param<float>("target_x", target_x, 0);
   nh.param<float>("target_y", target_y, 0);
+  nh.param<float>("target1_x", target1_x, 0);
+  nh.param<float>("target1_y", target1_y, 0);
+  nh.param<float>("err_yaw", err_yaw, 0);
   // 设置话题发布频率，需要大于2Hz，飞控连接有500ms的心跳包
   ros::Rate rate(20);
 
@@ -205,15 +210,25 @@ int main(int argc, char **argv)
         break;
            
        case 2:
-        if(abs(yaw)>0.7853981)//四分之PI
+        if(abs(yaw)>err_yaw)
         {
           mission_num = 11;
         }
         if (pub_ego_goal(target_x, target_y, 0.8, err_max_ego, 1))
         {
-            mission_num = 10;
-
+            mission_num = 3;
         }
+        break;
+        
+        case 3:
+        if(abs(yaw) > err_yaw)
+        {
+          mission_num = 11;
+        }
+          if (pub_ego_goal(target1_x, target1_y, 0.8, err_max_ego, 1))
+          {
+              mission_num = 10;
+          }
         break;
 
        case 10:
