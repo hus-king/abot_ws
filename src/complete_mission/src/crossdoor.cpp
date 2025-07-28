@@ -203,14 +203,14 @@ int main(int argc, char **argv)
         break;
            
        case 2:
-        if (pub_ego_goal(target_x, target_x, 0.8, err_max_ego, 0))
+        if (pub_ego_goal(target_x, target_y, 0.8, err_max_ego, 0))
         {
             mission_num = 10;
         }
         break;
 
        case 10:
-        mission_pos_cruise(target_x , target_x , 0.05, 0, err_max);
+        mission_pos_cruise(target_x , target_y , 0.05, 0, err_max);
         cout << "保持悬停状态..." << endl;
         break;
     }
