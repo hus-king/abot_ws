@@ -311,12 +311,12 @@ int main(int argc, char **argv)
             {
               if(index == 3)
               {
-                mission_num = 5;
+                mission_num = 5;//动态靶
                 last_request = ros::Time::now();
               }
               else
               {
-                mission_num = 2;
+                mission_num = 2;//投放完成直接跳过
                 last_request = ros::Time::now();
                 index++;
               }  
@@ -325,14 +325,14 @@ int main(int argc, char **argv)
             {
               square_yaw = square_yaw_cb;
               cout<<"square_yaw = "<<square_yaw<<endl;
-              mission_num = 21;
+              mission_num = 21;//识别
               last_request = ros::Time::now();
             }
           } 
         }
         break;
 
-      case 21:
+      case 21://悬停
         if(mission_pos_cruise(target_array_x[index], target_array_y[index], ALTITUDE, square_yaw, err_max))
         {
           if(lib_time_record_func(0.5,ros::Time::now()))
@@ -353,19 +353,19 @@ int main(int argc, char **argv)
         if(local_pos.pose.pose.position.z > (VIEW_ALTITUDE - 0.1))
         {
           start_checking = true;
-        }
-        if(found)
+        }//上升至VIEW_ALTITUDE高度开始识别
+        if(found)//确定找到
         {
-          mission_num = 4;
+          mission_num = 4;//投放
           now_target_x = box_target_x;
           now_target_y = box_target_y;
           start_checking = false;
           box_number++;
           last_request = ros::Time::now();
         }
-        else if(found_false)
+        else if(found_false)//确定找到不需要投放的靶标
         {
-          mission_num = 2;
+          mission_num = 2;//去下一个点
           start_checking = false;
           found_false = false; // 重置found_false状态
           index ++;//走完一个点
@@ -373,7 +373,7 @@ int main(int argc, char **argv)
         }
         else if(ros::Time::now() - last_request >= ros::Duration(3.0))
         {
-          mission_num = 31;
+          mission_num = 31;//没找到开始画正方形找
           last_request = ros::Time::now();
         }
         break;
@@ -437,7 +437,7 @@ int main(int argc, char **argv)
         mission_pos_cruise(target_array_x[index] + track_distance, target_array_y[index] - track_distance, VIEW_ALTITUDE, square_yaw, err_max);
         if(found)
         {
-          mission_num = 4;
+          mission_num = 4;//投放
           now_target_x = box_target_x;
           now_target_y = box_target_y;
           start_checking = false;
@@ -446,7 +446,7 @@ int main(int argc, char **argv)
         }
         else if(found_false)
         {
-          mission_num = 2;
+          mission_num = 2;//跳过
           start_checking = false;
           found_false = false; // 重置found_false状态
           index ++;//走完一个点
@@ -511,8 +511,8 @@ int main(int argc, char **argv)
           now_check_catapult_y = check_catapult_y;
         }
         if(mission_pos_cruise(now_target_x + now_check_catapult_x, now_target_y + now_check_catapult_y, 0.05, square_yaw, err_max))
-        {
-          if (lib_time_record_func(1.0, ros::Time::now())){
+        {//当前位置修正后投放
+          if (lib_time_record_func(1.0, ros::Time::now())){//等待
             if(index < 3)
             {
               mission_num = 2;
