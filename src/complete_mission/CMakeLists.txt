@@ -268,6 +268,9 @@ target_link_libraries(hover ${catkin_LIBRARIES} lib Eigen3::Eigen)
 add_executable(check_camera src/check_camera.cpp)
 target_link_libraries(check_camera ${catkin_LIBRARIES} lib Eigen3::Eigen)
 
+add_executable(check_tank src/check_tank.cpp)
+target_link_libraries(check_tank ${catkin_LIBRARIES} lib Eigen3::Eigen)
+
 add_executable(IPC_test src/IPC_test.cpp)
 target_link_libraries(IPC_test ${catkin_LIBRARIES})
 
