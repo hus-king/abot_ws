@@ -67,6 +67,8 @@ int main(int argc, char **argv)
   ros::Subscriber yolo_ros_box_sub = nh.subscribe<yolov8_ros_msgs::BoundingBoxes>("/object_position", 1, yolo_ros_cb);
 
   nh.param<float>("camera_height", camera_height, 0);
+  nh.param<float>("target_x", target_x, 0);
+  nh.param<float>("target_y", target_y, 0);
   // 设置话题发布频率，需要大于2Hz，飞控连接有500ms的心跳包
   ros::Rate rate(20);
 
@@ -203,15 +205,25 @@ int main(int argc, char **argv)
         break;
            
        case 2:
-        if (pub_ego_goal(target_x, target_y, 0.8, err_max_ego, 0))
+        if(abs(yaw)>0.7853981)//四分之PI
+        {
+          mission_num = 11;
+        }
+        if (pub_ego_goal(target_x, target_y, 0.8, err_max_ego, 1))
         {
             mission_num = 10;
+
         }
         break;
 
        case 10:
         mission_pos_cruise(target_x , target_y , 0.05, 0, err_max);
         cout << "保持悬停状态..." << endl;
+        break;
+
+       case 11:
+        current_position_cruise(0, 0, 0.05, yaw, err_max);
+        cout<< "原地降落...." << endl;
         break;
     }
     mavros_setpoint_pos_pub.publish(setpoint_raw);
