@@ -549,9 +549,9 @@ int main(int argc, char **argv)
         }
         break;
 
-      //视觉任务
+      //视觉任务（61-63）不用卡尔曼
       //61:识别第一帧且距离接近于正中心的值
-      case 61:
+      case 61://飞到识别到的tank处
         mission_pos_cruise(target5_x, target5_y, ALTITUDE, 0, err_max);
         if(found)
         {
@@ -562,7 +562,7 @@ int main(int argc, char **argv)
         }
         break;
       
-      case 62:
+      case 62://在识别到的tank处悬停并等待直到距离足够近就投放
         if(mission_pos_cruise(now_target_x + check_catapult_x, now_target_y, ALTITUDE, 0, err_max))
         {
           if(!found)
@@ -594,7 +594,7 @@ int main(int argc, char **argv)
         break;
       
       //kalman-version
-      case 66:
+      case 66://飞高预测
         mission_pos_cruise(now_target_x + check_catapult_x,now_target_y,TANK_ALTITUDE,0,err_max);
         if(step == 1)
         {
@@ -618,7 +618,7 @@ int main(int argc, char **argv)
         }
         break;
       
-      case 67:
+      case 67://飞到预测点并等待1s
         if(mission_pos_cruise(now_target_x + check_catapult_x,now_target_y,TANK_ALTITUDE,0,err_max))
         {
           if(lib_time_record_func(1.0, ros::Time::now()))
@@ -636,7 +636,7 @@ int main(int argc, char **argv)
         }
         break;
 
-      case 68:
+      case 68://哎你怎么似了
         if(mission_pos_cruise(now_target_x + check_catapult_x,now_target_y,ALTITUDE,0,err_max))
         {
           if(lib_time_record_func(0.5, ros::Time::now()))
