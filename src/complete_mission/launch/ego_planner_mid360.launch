@@ -4,11 +4,11 @@
     <!-- 地图尺寸 -->
     <arg name="map_size_x_" value="50.0"/>
     <arg name="map_size_y_" value="50.0"/>
-    <arg name="map_size_z_" value="1.1"/>
+    <arg name="map_size_z_" value="0.9"/>
     <arg name="map_origin_x_" value="-25.0"/>
     <arg name="map_origin_y_" value="-25.0"/>
     <!-- 可以通过限制ground_height和map_size_z来使得飞机在特定高度飞行 -->
-    <arg name="ground_height" value="0.7"/>
+    <arg name="ground_height" value="0.6"/>
     <!-- 虚拟天花板高度要小于等于ground_height+z_size，否则重置该高度 -->
     <!-- 里程计话题 -->
     <arg name="odometry_topic" value="/mavros/local_position/odom"/>
@@ -25,7 +25,7 @@
     <arg name="scan_topic" value=""/>
     <!-- 最大速度及加速度 -->
     <arg name="max_vel" value="0.5" />
-    <arg name="max_acc" value="4" />
+    <arg name="max_acc" value="0.5" />
     <!-- 规划的范围，一般设置为感知范围的1.5倍 -->
     <arg name="planning_horizon" value="4.5" /> 
     <!-- ？ -->

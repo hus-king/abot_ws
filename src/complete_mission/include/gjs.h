@@ -40,9 +40,8 @@ std_msgs::Bool finish_ego_flag;
 
 int spin_flag = 0 ;
 
-
-float map_size_z = 1.1;
-float ground_height = 0.7;
+float map_size_z = 0.8;
+float ground_height = 0.8;
 float ego_now_x = 0;
 float ego_now_y = 0;
 yolov8_ros_msgs::BoundingBox cb;

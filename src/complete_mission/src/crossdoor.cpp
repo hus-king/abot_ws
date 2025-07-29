@@ -7,8 +7,9 @@ int mission_num = 0;   //mission_flag
 float target_x = 4.0, target_y = 0;
 float target1_x , target1_y;
 float err_yaw;
+float now_yaw = 0;
 
-float err_max = 0.2;
+float err_max = 0.1;
 float err_max_ego = 0.2;
 
 
@@ -19,6 +20,9 @@ void print_param()
   std::cout << "err_max : " << err_max << std::endl;
   std::cout << "target_x : " << target_x << std::endl;
   std::cout << "target_y : " << target_y << std::endl;
+  std::cout << "target1_x : " << target1_x << std::endl;
+  std::cout << "target1_y : " << target1_y << std::endl;
+  std::cout << "err_yaw : " << err_yaw << std::endl;
 }
 
 
@@ -210,35 +214,56 @@ int main(int argc, char **argv)
         break;
            
        case 2:
-        if(abs(yaw)>err_yaw)
+        // if(abs(yaw)>err_yaw)
+        // {
+        //   mission_num = 11;
+        // }
+        if (pub_ego_goal(target_x, target_y, 0.8, err_max_ego, 0))
         {
-          mission_num = 11;
-        }
-        if (pub_ego_goal(target_x, target_y, 0.8, err_max_ego, 1))
-        {
-            mission_num = 3;
+            mission_num = 21;
+            last_request = ros::Time::now();
         }
         break;
         
         case 3:
-        if(abs(yaw) > err_yaw)
-        {
-          mission_num = 11;
-        }
-          if (pub_ego_goal(target1_x, target1_y, 0.8, err_max_ego, 1))
+        // if(abs(yaw) > err_yaw)
+        // {
+        //   mission_num = 11;
+        // }
+          if (pub_ego_goal(target1_x, target1_y, 0.8, err_max_ego, 0))
           {
+              now_yaw = yaw;
               mission_num = 10;
           }
         break;
 
        case 10:
-        mission_pos_cruise(target_x , target_y , 0.05, 0, err_max);
+        mission_pos_cruise(target1_x , target1_y , 0.05, now_yaw, err_max);
         cout << "保持悬停状态..." << endl;
         break;
 
-       case 11:
-        current_position_cruise(0, 0, 0.05, yaw, err_max);
-        cout<< "原地降落...." << endl;
+      //  case 11:
+      //   current_position_cruise(0, 0, 0.05, yaw, err_max);
+      //   cout<< "原地降落...." << endl;
+      //   break;
+
+        case 21://悬停
+        if(mission_pos_cruise(target_x, target_y, 0.8, 0, err_max))
+        {
+          if(lib_time_record_func(3,ros::Time::now()))
+          {
+            mission_num = 3;
+            last_request = ros::Time::now();
+            cout<<"正常退出:)"<<endl;
+          }
+          cout<<"在误差范围内"<<endl;
+        }
+        else if(ros::Time::now() - last_request >= ros::Duration(6.0))
+        {
+          mission_num = 3;
+          last_request = ros::Time::now();
+          cout<<"哭也算时间哦;("<<endl;
+        }
         break;
     }
     mavros_setpoint_pos_pub.publish(setpoint_raw);
