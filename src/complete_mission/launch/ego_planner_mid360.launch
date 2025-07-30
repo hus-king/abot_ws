@@ -4,11 +4,13 @@
     <!-- 地图尺寸 -->
     <arg name="map_size_x_" value="50.0"/>
     <arg name="map_size_y_" value="50.0"/>
-    <arg name="map_size_z_" value="0.9"/>
+    <arg name="map_size_z_" value="0.9"/><!-- 巡航用 -->
+    <arg name="map_size_z_door" value="0.9"/><!-- 穿门用 -->
     <arg name="map_origin_x_" value="-25.0"/>
     <arg name="map_origin_y_" value="-25.0"/>
     <!-- 可以通过限制ground_height和map_size_z来使得飞机在特定高度飞行 -->
-    <arg name="ground_height" value="0.6"/>
+    <arg name="ground_height" value="0.6"/><!-- 巡航用 -->
+    <arg name="ground_height_door" value="0.6"/><!-- 穿门用 -->
     <!-- 虚拟天花板高度要小于等于ground_height+z_size，否则重置该高度 -->
     <!-- 里程计话题 -->
     <arg name="odometry_topic" value="/mavros/local_position/odom"/>

@@ -18,6 +18,7 @@
 #include "quadrotor_msgs/PositionCommand.h"
 #include <std_msgs/String.h>
 #include <std_msgs/Empty.h>
+#include <std_msgs/Int32.h>
 #include <yolov8_ros_msgs/BoundingBoxes.h>
 #include <vector>
 #include <eigen3/Eigen/Dense>
@@ -36,7 +37,9 @@ using namespace std;
 mavros_msgs::PositionTarget setpoint_raw;
 ros::Publisher planner_goal_pub;
 ros::Publisher finish_ego_pub;
+ros::Publisher ego_planner_mode_pub;
 std_msgs::Bool finish_ego_flag;
+std_msgs::Int32 ego_planner_mode;
 
 int spin_flag = 0 ;
 
@@ -1154,4 +1157,18 @@ bool pub_ego_goal(float x, float y, float z, float err_max, int first_target)
 		return true;
 	}
 	return false;
+}
+
+/************************************************************************
+函数功能: 发布ego planner模式
+//1、定义变量
+//2、函数声明
+//3、函数定义
+*************************************************************************/
+void publish_ego_planner_mode(int mode);
+void publish_ego_planner_mode(int mode)
+{
+	ego_planner_mode.data = mode;
+	ego_planner_mode_pub.publish(ego_planner_mode);
+	ROS_INFO("发布ego planner模式: %d", mode);
 }

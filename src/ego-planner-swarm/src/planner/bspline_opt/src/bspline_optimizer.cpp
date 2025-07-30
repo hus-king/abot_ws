@@ -1,7 +1,7 @@
 #include "bspline_opt/bspline_optimizer.h"
 #include "bspline_opt/gradient_descent_optimizer.h"
 // using namespace std;
-
+int ego_mode;
 namespace ego_planner
 {
 
@@ -11,8 +11,9 @@ namespace ego_planner
     nh.param("optimization/lambda_collision", lambda2_, -1.0);
     nh.param("optimization/lambda_feasibility", lambda3_, -1.0);
     nh.param("optimization/lambda_fitness", lambda4_, -1.0);
-
-    nh.param("optimization/dist0", dist0_, -1.0);
+    nh.param("/ego_planner_mode", ego_mode, -1);
+    nh.param("optimization/dist0_1", dist0_1, -1.0);
+    nh.param("optimization/dist0_2", dist0_2, -1.0);
     nh.param("optimization/swarm_clearance", swarm_clearance_, -1.0);
     nh.param("optimization/max_vel", max_vel_, -1.0);
     nh.param("optimization/max_acc", max_acc_, -1.0);
@@ -436,7 +437,25 @@ namespace ego_planner
 
     if (flag_first_init)
     {
-      cps_.clearance = dist0_;
+      if(ego_mode== -1)
+      {
+        ROS_ERROR("ego_mode is not set, please set it first!");
+      }
+      else if(ego_mode == 0)
+      {
+        ROS_INFO("ego_mode is set to 0, which means the ego planner is in the normal mode.");
+        cps_.clearance = dist0_1;
+      }
+      else if(ego_mode == 1)
+      {
+        ROS_INFO("ego_mode is set to 1, which means the ego planner is in the crossingdoor mode.");
+        cps_.clearance = dist0_2;
+      }
+      else
+      {
+        ROS_ERROR("ego_mode is set to an unknown value: %d", ego_mode);
+        return std::vector<std::pair<int, int>>();
+      }
       cps_.resize(init_points.cols());
       cps_.points = init_points;
     }

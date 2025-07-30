@@ -802,3 +802,4 @@ inline double GridMap::getResolution() { return mp_.resolution_; }
 // inline double GridMap::getResolution() { return mp_.resolution_; }
 
 // #endif
+

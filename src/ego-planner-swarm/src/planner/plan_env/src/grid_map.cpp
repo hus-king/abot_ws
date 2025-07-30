@@ -1,5 +1,5 @@
 #include "plan_env/grid_map.h"
-
+int map_ego_mode;
 // #define current_img_ md_.depth_image_[image_cnt_ & 1]
 // #define last_img_ md_.depth_image_[!(image_cnt_ & 1)]
 
@@ -9,10 +9,24 @@ void GridMap::initMap(ros::NodeHandle &nh)
 
   /* get parameter */
   double x_size, y_size, z_size;
+  nh.param("/ego_planner_mode", map_ego_mode, 1);
+
   node_.param("grid_map/resolution", mp_.resolution_, -1.0);
+
   node_.param("grid_map/map_size_x", x_size, -1.0);
   node_.param("grid_map/map_size_y", y_size, -1.0);
+
+  if(map_ego_mode==0){
   node_.param("grid_map/map_size_z", z_size, -1.0);
+  cout<<"map_size_z: "<<z_size<<endl;
+  cout<<"mode: "<<map_ego_mode<<endl;
+  }
+  else if(map_ego_mode==1){
+  node_.param("grid_map/map_size_z_door", z_size, -1.0);
+  cout<<"map_size_z_door: "<<z_size<<endl;
+  cout<<"mode: "<<map_ego_mode<<endl;
+  }
+
   node_.param("grid_map/local_update_range_x", mp_.local_update_range_(0), -1.0);
   node_.param("grid_map/local_update_range_y", mp_.local_update_range_(1), -1.0);
   node_.param("grid_map/local_update_range_z", mp_.local_update_range_(2), -1.0);
@@ -49,7 +63,17 @@ void GridMap::initMap(ros::NodeHandle &nh)
 
   node_.param("grid_map/frame_id", mp_.frame_id_, string("world"));
   node_.param("grid_map/local_map_margin", mp_.local_map_margin_, 1);
+  
+  if(map_ego_mode==0){
   node_.param("grid_map/ground_height", mp_.ground_height_, 1.0);
+  cout<<"ground_height: "<<mp_.ground_height_<<endl;
+  cout<<"mode: "<<map_ego_mode<<endl;
+  }
+  else if(map_ego_mode==1){
+  node_.param("grid_map/ground_height_door", mp_.ground_height_, 1.0);
+  cout<<"ground_height_door: "<<mp_.ground_height_<<endl; 
+  cout<<"mode: "<<map_ego_mode<<endl;
+  }
 
   node_.param("grid_map/odom_depth_timeout", mp_.odom_depth_timeout_, 1.0);
 

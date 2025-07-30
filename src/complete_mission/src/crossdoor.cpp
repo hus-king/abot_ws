@@ -46,6 +46,9 @@ int main(int argc, char **argv)
 
   finish_ego_pub = nh.advertise<std_msgs::Bool>("/finish_ego", 1);
 
+  // 发布ego planner模式
+  ego_planner_mode_pub = nh.advertise<std_msgs::Int32>("/ego_planner_mode", 10);
+
   // 创建一个Subscriber订阅者，订阅名为/mavros/state的topic，注册回调函数state_cb
   ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("mavros/state", 10, state_cb);
 
@@ -84,6 +87,8 @@ int main(int argc, char **argv)
   //  参数读取
   print_param();
 
+  // 持续发布ego planner模式为1
+  publish_ego_planner_mode(1);
   
   int choice = 0;
   std::cout << "1 to go on , else to quit" << std::endl;
@@ -266,6 +271,8 @@ int main(int argc, char **argv)
         }
         break;
     }
+
+    
     mavros_setpoint_pos_pub.publish(setpoint_raw);
     ros::spinOnce();
     rate.sleep();
