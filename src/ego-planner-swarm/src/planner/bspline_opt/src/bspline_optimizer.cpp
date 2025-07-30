@@ -2,11 +2,12 @@
 #include "bspline_opt/gradient_descent_optimizer.h"
 // using namespace std;
 int ego_mode;
+ros::Timer ego_mode_timer_; // 新增：定时器
 namespace ego_planner
 {
 
   void BsplineOptimizer::setParam(ros::NodeHandle &nh)
-  {
+{
     nh.param("optimization/lambda_smooth", lambda1_, -1.0);
     nh.param("optimization/lambda_collision", lambda2_, -1.0);
     nh.param("optimization/lambda_feasibility", lambda3_, -1.0);
@@ -17,9 +18,19 @@ namespace ego_planner
     nh.param("optimization/swarm_clearance", swarm_clearance_, -1.0);
     nh.param("optimization/max_vel", max_vel_, -1.0);
     nh.param("optimization/max_acc", max_acc_, -1.0);
-
     nh.param("optimization/order", order_, 3);
-  }
+
+    // 新增：定时器，每0.2秒自动更新ego_mode
+    ego_mode_timer_ = nh.createTimer(ros::Duration(0.2), [this](const ros::TimerEvent&) {
+        int mode;
+        if (ros::param::get("/ego_planner_mode", mode)) {
+            if (mode != ego_mode) {
+                ego_mode = mode;
+                ROS_INFO_STREAM("[BsplineOptimizer] ego_mode updated to: " << ego_mode);
+            }
+        }
+    });
+}
 
   void BsplineOptimizer::setEnvironment(const GridMap::Ptr &map)
   {

@@ -40,6 +40,7 @@ ros::Publisher finish_ego_pub;
 ros::Publisher ego_planner_mode_pub;
 std_msgs::Bool finish_ego_flag;
 std_msgs::Int32 ego_planner_mode;
+int now_mode = -1 ;
 
 int spin_flag = 0 ;
 
@@ -1042,7 +1043,23 @@ void PI_attitude_control()
 	ROS_INFO("已触发控制器: vel_x = %.2f, vel_y = %.2f, z = %.2f, yaw = %.2f", setpoint_raw.velocity.x, setpoint_raw.velocity.y, setpoint_raw.position.z, setpoint_raw.yaw);
 	ROS_INFO("now_yaw: %.2f", square_yaw_cb * 180.0 / M_PI);
 	ROS_INFO("ego_target_x = %.2f, ego_target_y = %.2f", ego_now_x, ego_now_y);
+	ROS_INFO("now_mode = %d", now_mode);
 }
+
+/************************************************************************
+函数功能: 发布ego planner模式
+//1、定义变量
+//2、函数声明
+//3、函数定义
+*************************************************************************/
+void publish_ego_planner_mode(int mode);
+void publish_ego_planner_mode(int mode)
+{
+	ego_planner_mode.data = mode;
+	ego_planner_mode_pub.publish(ego_planner_mode);
+	ROS_INFO("发布ego planner模式: %d", mode);
+}
+
 
 /************************************************************************
 函数功能:ego_planner发布目标点函数
@@ -1054,9 +1071,13 @@ float before_ego_pose_x = 0;
 float before_ego_pose_y = 0;
 float before_ego_pose_z = 0;
 bool pub_ego_goal_flag = false;
-bool pub_ego_goal(float x, float y, float z, float err_max, int first_target = 0);
-bool pub_ego_goal(float x, float y, float z, float err_max, int first_target)
+bool pub_ego_goal(float x, float y, float z, float err_max, int first_target = 0, int mode = 0);
+bool pub_ego_goal(float x, float y, float z, float err_max, int first_target, int mode)
 {
+	ego_planner_mode.data = mode;
+	ego_planner_mode_pub.publish(ego_planner_mode);
+	ROS_INFO("发布ego planner模式: %d", mode);
+	now_mode = mode;
 	before_ego_pose_x = local_pos.pose.pose.position.x;
 	before_ego_pose_y = local_pos.pose.pose.position.y;
 	before_ego_pose_z = local_pos.pose.pose.position.z;
@@ -1159,16 +1180,3 @@ bool pub_ego_goal(float x, float y, float z, float err_max, int first_target)
 	return false;
 }
 
-/************************************************************************
-函数功能: 发布ego planner模式
-//1、定义变量
-//2、函数声明
-//3、函数定义
-*************************************************************************/
-void publish_ego_planner_mode(int mode);
-void publish_ego_planner_mode(int mode)
-{
-	ego_planner_mode.data = mode;
-	ego_planner_mode_pub.publish(ego_planner_mode);
-	ROS_INFO("发布ego planner模式: %d", mode);
-}

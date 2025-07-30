@@ -1,7 +1,7 @@
-target_x: 2.7
-target_y: 0.0
+target_x: 1.1
+target_y: -2.5
 
-target1_x: 2.7
-target1_y: -5.5
+target1_x: -4.3
+target1_y: -2.5
 
 err_yaw: 1.6

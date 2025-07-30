@@ -86,9 +86,6 @@ int main(int argc, char **argv)
 
   //  参数读取
   print_param();
-
-  // 持续发布ego planner模式为1
-  publish_ego_planner_mode(1);
   
   int choice = 0;
   std::cout << "1 to go on , else to quit" << std::endl;
@@ -219,11 +216,7 @@ int main(int argc, char **argv)
         break;
            
        case 2:
-        // if(abs(yaw)>err_yaw)
-        // {
-        //   mission_num = 11;
-        // }
-        if (pub_ego_goal(target_x, target_y, 0.8, err_max_ego, 0))
+        if (pub_ego_goal(target_x, target_y, 0.8, err_max_ego, 0, 0))
         {
             mission_num = 21;
             last_request = ros::Time::now();
@@ -231,11 +224,7 @@ int main(int argc, char **argv)
         break;
         
         case 3:
-        // if(abs(yaw) > err_yaw)
-        // {
-        //   mission_num = 11;
-        // }
-          if (pub_ego_goal(target1_x, target1_y, 0.8, err_max_ego, 0))
+          if (pub_ego_goal(target1_x, target1_y, 0.8, err_max_ego, 0, 1))
           {
               now_yaw = yaw;
               mission_num = 10;

@@ -2,7 +2,7 @@
 int map_ego_mode;
 // #define current_img_ md_.depth_image_[image_cnt_ & 1]
 // #define last_img_ md_.depth_image_[!(image_cnt_ & 1)]
-
+ros::Timer ego_mode_timer; // 新增：定时器
 void GridMap::initMap(ros::NodeHandle &nh)
 {
   node_ = nh;
@@ -10,7 +10,10 @@ void GridMap::initMap(ros::NodeHandle &nh)
   /* get parameter */
   double x_size, y_size, z_size;
   nh.param("/ego_planner_mode", map_ego_mode, 1);
-
+  // 新增：定时器，每0.2秒自动更新map_ego_mode
+  ego_mode_timer = nh.createTimer(ros::Duration(0.2), [](const ros::TimerEvent&) {
+      ros::param::get("/ego_planner_mode", map_ego_mode);
+  });
   node_.param("grid_map/resolution", mp_.resolution_, -1.0);
 
   node_.param("grid_map/map_size_x", x_size, -1.0);
