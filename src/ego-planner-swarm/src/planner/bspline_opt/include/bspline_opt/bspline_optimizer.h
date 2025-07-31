@@ -9,6 +9,7 @@
 #include <ros/ros.h>
 #include "bspline_opt/lbfgs.hpp"
 #include <traj_utils/plan_container.hpp>
+#include <std_msgs/Int32.h>
 
 // Gradient and elasitc band optimization
 

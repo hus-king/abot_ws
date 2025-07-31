@@ -1,19 +1,31 @@
 #include "plan_env/grid_map.h"
+#include <std_msgs/Int32.h>
 int map_ego_mode;
 // #define current_img_ md_.depth_image_[image_cnt_ & 1]
 // #define last_img_ md_.depth_image_[!(image_cnt_ & 1)]
 ros::Timer ego_mode_timer; // 新增：定时器
+ros::Subscriber map_ego_mode_sub; // 新增：订阅器
+
+// 新增：ego_planner_mode回调函数
+void map_ego_mode_callback(const std_msgs::Int32::ConstPtr &msg)
+{
+    map_ego_mode = msg->data;
+    ROS_INFO("[GridMap] Received ego_planner_mode update: %d", map_ego_mode);
+}
 void GridMap::initMap(ros::NodeHandle &nh)
 {
   node_ = nh;
 
   /* get parameter */
   double x_size, y_size, z_size;
-  nh.param("/ego_planner_mode", map_ego_mode, 1);
-  // 新增：定时器，每0.2秒自动更新map_ego_mode
-  ego_mode_timer = nh.createTimer(ros::Duration(0.2), [](const ros::TimerEvent&) {
-      ros::param::get("/ego_planner_mode", map_ego_mode);
-  });
+  
+  // 初始化map_ego_mode，首先尝试从参数服务器读取默认值
+  nh.param("/ego_planner_mode", map_ego_mode, 0);
+  
+  // 订阅ego_planner_mode话题进行实时更新
+  map_ego_mode_sub = nh.subscribe("/ego_planner_mode", 10, map_ego_mode_callback);
+  ROS_INFO("[GridMap] Subscribed to /ego_planner_mode topic for real-time updates");
+  
   node_.param("grid_map/resolution", mp_.resolution_, -1.0);
 
   node_.param("grid_map/map_size_x", x_size, -1.0);
@@ -21,19 +33,24 @@ void GridMap::initMap(ros::NodeHandle &nh)
 
   if(map_ego_mode==0){
   node_.param("grid_map/map_size_z", z_size, -1.0);
-  cout<<"map_size_z: "<<z_size<<endl;
-  cout<<"mode: "<<map_ego_mode<<endl;
+  node_.param("grid_map/obstacles_inflation", mp_.obstacles_inflation_, -1.0);
+  ROS_INFO("ego_planner_mode: %d", map_ego_mode);
+  ROS_INFO("map_size_z: %f", z_size);
+  ROS_INFO("obstacles_inflation: %f", mp_.obstacles_inflation_);
   }
   else if(map_ego_mode==1){
   node_.param("grid_map/map_size_z_door", z_size, -1.0);
-  cout<<"map_size_z_door: "<<z_size<<endl;
-  cout<<"mode: "<<map_ego_mode<<endl;
+  node_.param("grid_map/obstacles_inflation_door", mp_.obstacles_inflation_, -1.0);
+  ROS_INFO("ego_planner_mode: %d", map_ego_mode);
+  ROS_INFO("map_size_z: %f", z_size);
+  ROS_INFO("obstacles_inflation: %f", mp_.obstacles_inflation_);
   }
 
   node_.param("grid_map/local_update_range_x", mp_.local_update_range_(0), -1.0);
   node_.param("grid_map/local_update_range_y", mp_.local_update_range_(1), -1.0);
   node_.param("grid_map/local_update_range_z", mp_.local_update_range_(2), -1.0);
-  node_.param("grid_map/obstacles_inflation", mp_.obstacles_inflation_, -1.0);
+  
+  
 
   node_.param("grid_map/fx", mp_.fx_, -1.0);
   node_.param("grid_map/fy", mp_.fy_, -1.0);
@@ -631,8 +648,18 @@ void GridMap::clearAndInflateLocalMap()
     }
 
   // inflate occupied voxels to compensate robot size
-
-  int inf_step = ceil(mp_.obstacles_inflation_ / mp_.resolution_);
+  
+  // 根据map_ego_mode动态选择obstacles_inflation参数
+  double current_obstacles_inflation;
+  if(map_ego_mode == 0) {
+    node_.param("grid_map/obstacles_inflation", current_obstacles_inflation, 0.2);
+  } else if(map_ego_mode == 1) {
+    node_.param("grid_map/obstacles_inflation_door", current_obstacles_inflation, 0.1);
+  } else {
+    current_obstacles_inflation = mp_.obstacles_inflation_; // 使用默认值
+  }
+  
+  int inf_step = ceil(current_obstacles_inflation / mp_.resolution_);
   // int inf_step_z = 1;
   vector<Eigen::Vector3i> inf_pts(pow(2 * inf_step + 1, 3));
   // inf_pts.resize(4 * inf_step + 3);
@@ -805,7 +832,17 @@ void GridMap::cloudCallback(const sensor_msgs::PointCloud2ConstPtr &img)
   pcl::PointXYZ pt;
   Eigen::Vector3d p3d, p3d_inf;
 
-  int inf_step = ceil(mp_.obstacles_inflation_ / mp_.resolution_);
+  // 根据map_ego_mode动态选择obstacles_inflation参数
+  double current_obstacles_inflation;
+  if(map_ego_mode == 0) {
+    node_.param("grid_map/obstacles_inflation", current_obstacles_inflation, 0.2);
+  } else if(map_ego_mode == 1) {
+    node_.param("grid_map/obstacles_inflation_door", current_obstacles_inflation, 0.1);
+  } else {
+    current_obstacles_inflation = mp_.obstacles_inflation_; // 使用默认值
+  }
+  
+  int inf_step = ceil(current_obstacles_inflation / mp_.resolution_);
   int inf_step_z = 1;
 
   double max_x, max_y, max_z, min_x, min_y, min_z;

@@ -218,6 +218,7 @@ int main(int argc, char **argv)
        case 2:
         if (pub_ego_goal(target_x, target_y, 0.8, err_max_ego, 0, 0))
         {
+            now_yaw = yaw;
             mission_num = 21;
             last_request = ros::Time::now();
         }
@@ -242,7 +243,7 @@ int main(int argc, char **argv)
       //   break;
 
         case 21://悬停
-        if(mission_pos_cruise(target_x, target_y, 0.8, 0, err_max))
+        if(mission_pos_cruise(target_x, target_y, 0.8, now_yaw, err_max))
         {
           if(lib_time_record_func(3,ros::Time::now()))
           {
@@ -261,7 +262,6 @@ int main(int argc, char **argv)
         break;
     }
 
-    
     mavros_setpoint_pos_pub.publish(setpoint_raw);
     ros::spinOnce();
     rate.sleep();

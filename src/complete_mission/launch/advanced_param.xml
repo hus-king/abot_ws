@@ -112,7 +112,8 @@
     <param name="grid_map/local_update_range_y"  value="5.5" /> 
     <param name="grid_map/local_update_range_z"  value="4.5" /> 
     <!-- 膨胀距离 -->
-    <param name="grid_map/obstacles_inflation"     value="0.2" /> 
+    <param name="grid_map/obstacles_inflation"     value="0.4" /> 
+    <param name="grid_map/obstacles_inflation_door"     value="0.2" /> <!--穿门模式-->
     <param name="grid_map/local_map_margin" value="5"/>
     <!-- ground_height -->
     <param name="grid_map/ground_height"        value="$(arg ground_height)"/>
@@ -179,7 +180,7 @@
     <param name="bspline/limit_acc" value="$(arg max_acc)" type="double"/>
     <param name="bspline/limit_ratio" value="1.1" type="double"/>
     <!-- ego巡航模式——mode 1 -->
-    <param name="optimization/dist0_1" value="0.12" type="double"/><!--巡航模式，更加安全-->
+    <param name="optimization/dist0_1" value="0.5" type="double"/><!--巡航模式，更加安全-->
     <!-- ego穿门模式——mode 2 -->
     <param name="optimization/dist0_2" value="0.12" type="double"/><!--穿门模式-->
   </node>
