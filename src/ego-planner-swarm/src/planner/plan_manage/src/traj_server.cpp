@@ -6,14 +6,12 @@
 #include "visualization_msgs/Marker.h"
 #include <ros/ros.h>
 #include "std_msgs/Bool.h"
-#include <tf/transform_datatypes.h>
-#include <iostream>
-
-// 定义全局常量
-constexpr double PI = 3.1415926;
+#include <tf/transform_datatypes.h> 
 
 ros::Publisher rec_traj_pub;
 ros::Publisher pos_cmd_pub;
+
+// 避免重规划时yaw控制器的初始值被重置
 bool using_ego = false;
 bool start_using_ego = false;
 double now_yaw = 0.0;
@@ -23,11 +21,6 @@ double limit_yaw_change = 0.75;
 quadrotor_msgs::PositionCommand cmd;
 double pos_gain[3] = {0, 0, 0};
 double vel_gain[3] = {0, 0, 0};
-
-// 添加缺失的变量声明
-tf::Quaternion quat;
-nav_msgs::Odometry local_pos;
-double roll, pitch, pos_yaw = 0.0;  // 初始化pos_yaw
 
 using ego_planner::UniformBspline;
 
@@ -41,13 +34,14 @@ int traj_id_;
 double last_yaw_, last_yaw_dot_;
 double time_forward_;
 
-void local_pos_cb(const nav_msgs::Odometry::ConstPtr &msg)
+void odomCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
-	local_pos = *msg;
-	tf::quaternionMsgToTF(local_pos.pose.pose.orientation, quat);
-	tf::Matrix3x3(quat).getRPY(roll, pitch, pos_yaw);
+  tf::Quaternion q;
+  tf::quaternionMsgToTF(msg->pose.pose.orientation, q);
+  double roll, pitch, yaw;
+  tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
+  now_yaw = yaw;
 }
-
 
 void bsplineCallback(traj_utils::BsplineConstPtr msg)
 {
@@ -95,6 +89,7 @@ void bsplineCallback(traj_utils::BsplineConstPtr msg)
 
 std::pair<double, double> calculate_yaw(double t_cur, Eigen::Vector3d &pos, ros::Time &time_now, ros::Time &time_last)
 {
+  constexpr double PI = 3.1415926;
   constexpr double YAW_DOT_MAX_PER_SEC = PI;
   // constexpr double YAW_DOT_DOT_MAX_PER_SEC = PI;
   std::pair<double, double> yaw_yawdot(0, 0);
@@ -196,10 +191,9 @@ void cmdCallback(const ros::TimerEvent &e)
     return;
   }
 
-
   if (!using_ego)
   {
-    last_yaw_ = pos_yaw;
+    //last_yaw_ = 0;
     start_using_ego = false;
     return;
   }
@@ -207,11 +201,10 @@ void cmdCallback(const ros::TimerEvent &e)
   if(using_ego && !start_using_ego)
   {
     start_using_ego = true;
-    last_yaw_ = pos_yaw;
-    // 角度归一化
-    while (last_yaw_ > PI) last_yaw_ -= 2*PI;
-    while (last_yaw_ < -PI) last_yaw_ += 2*PI;
-    std::cout << "开始使用ego规划，初始yaw: " << last_yaw_ << std::endl;
+    last_yaw_dot_ = cmd.yaw_dot;
+    last_yaw_ = now_yaw; // current_yaw 由 odometry 回调实时更新
+    ROS_WARN("[Traj server]: start using ego.");
+    ROS_INFO("[Traj server]: current_yaw = %f", now_yaw);
   }
 
   ros::Time time_now = ros::Time::now();
@@ -248,7 +241,7 @@ void cmdCallback(const ros::TimerEvent &e)
   }
   else
   {
-    std::cout << "[Traj server]: invalid time." << std::endl;
+    cout << "[Traj server]: invalid time." << endl;
   }
   time_last = time_now;
 
@@ -298,7 +291,8 @@ int main(int argc, char **argv)
   ros::NodeHandle nh("~");
 
   ros::Subscriber bspline_sub = nh.subscribe("/planning/bspline", 10, bsplineCallback);
-  ros::Subscriber local_pos_sub = nh.subscribe("/local_position", 10, local_pos_cb);
+  ros::Subscriber odom_sub = nh.subscribe("/mavros/local_position/odom", 10, odomCallback);
+
   pos_cmd_pub = nh.advertise<quadrotor_msgs::PositionCommand>("/position_cmd", 50);
   rec_traj_pub = nh.advertise<std_msgs::Bool>("/rec_traj", 50);
 
@@ -318,14 +312,14 @@ int main(int argc, char **argv)
   nh.param("traj_server/time_forward", time_forward_, 1.0);
   nh.param("traj_server/limit_yaw_change", limit_yaw_change, 0.75);
 
-  last_yaw_ = pos_yaw;
+  last_yaw_ = 0.0;
   last_yaw_dot_ = 0.0;
 
   ros::Duration(1.0).sleep();
 
   ROS_WARN("[Traj server]: ready.");
 
-  std::cout << "limit_yaw_change : " << limit_yaw_change << std::endl;
+  std::cout << "limit_ywa_change : " << limit_yaw_change << std::endl;
 
   ros::spin();
 
