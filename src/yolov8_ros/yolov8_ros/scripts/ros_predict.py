@@ -14,12 +14,13 @@ import numpy as np
 filter = 2
 
 class YOLODetector:
+    def __init__(self):
         # 类型稳定性相关变量
         self.last_type = None
         self.stable_count = 0
         self.switch_pending = None
         self.no_type_count = 0
-    def __init__(self):
+        
         # 初始化ROS节点
         rospy.init_node('yolo_detector', anonymous=True)
         

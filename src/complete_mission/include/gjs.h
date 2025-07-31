@@ -193,29 +193,30 @@ bool current_position_cruise(float x, float y, float z, float yaw, float error_m
 //2、函数声明
 //3、函数定义
 *************************************************************************/
-bool start_checking = false;//是否开始yolo检测
-bool found = false;//是否累计10次发现固定靶子
-bool found_false = false; // 发现错误目标
-bool found_tank = false; // 是否累计十次发现移动靶子
+bool start_checking = false;  // YOLO检测启动标志：true=开始目标检测，false=停止检测
+bool only_tank = false; // 仅检测tank目标标志：true=只检测tank，false=检测car和bridge
+bool found = false;           // 固定目标发现标志：累计检测到car或bridge达到阈值次数时为true
+bool found_false = false;     // 错误目标发现标志：连续检测到非期望目标达到阈值次数时为true
+bool found_tank = false;      // 移动目标发现标志：累计检测到tank达到阈值次数时为true
 
-std::string have_found;
-float box_target_x;
-float box_target_y;
-float fx = 474.00855717;
-float fy = 471.47044825;
-float cx = 329.17278775;
-// float cy = 207.32440702;
-float cy = 250.0;
+std::string have_found;       // 最近检测到的目标类别名称
+float box_target_x;           // 目标在世界坐标系中的X坐标（米）
+float box_target_y;           // 目标在世界坐标系中的Y坐标（米）
+float fx = 474.00855717;      // 相机内参：X轴焦距（像素）
+float fy = 471.47044825;      // 相机内参：Y轴焦距（像素）
+float cx = 329.17278775;      // 相机内参：图像中心X坐标（像素）
+// float cy = 207.32440702;   // 原始相机内参：图像中心Y坐标（像素）
+float cy = 250.0;             // 修正后的相机内参：图像中心Y坐标（像素）
 
-std::string target_data[2] = {"car","bridge"};  // 只检测car和bridge
+std::string target_data[2] = {"car","bridge"};  // 目标检测类别数组，只检测车辆和桥梁两种目标
 
-// 累计检测计数器
-int car_detect_count = 0;
-int bridge_detect_count = 0;
-int tank_detect_count = 0;  // 坦克检测计数器（用于单独判断）
-int false_detect_count = 0;  // 错误目标检测计数器（不是car/bridge的都算错误）
-const int DETECT_THRESHOLD = 10;  // 需要累计检测10次才算找到
-const int FALSE_THRESHOLD = 10;   // 连续10次错误检测则found_false为true
+// 累计检测计数器 - 用于消除误检，提高检测可靠性
+int car_detect_count = 0;        // 车辆目标累计检测次数计数器
+int bridge_detect_count = 0;     // 桥梁目标累计检测次数计数器
+int tank_detect_count = 0;       // 坦克目标累计检测次数计数器（用于移动目标跟踪）
+int false_detect_count = 0;      // 错误目标检测计数器（检测到非期望目标时递增）
+const int DETECT_THRESHOLD = 10; // 目标确认阈值：需要累计检测10次才确认找到目标（消除误检）
+const int FALSE_THRESHOLD = 10;  // 错误检测阈值：连续10次错误检测则found_false为true（避开干扰目标）
 
 void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){    
     if(!start_checking) {
@@ -244,6 +245,7 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
         // 检查是否为car或bridge且之前未找到
 		bool is_target_found = false;
 		for(int i = 0; i < 2; i++){
+			if(only_tank) break; // 如果仅检测tank，跳过其他目标
             string target = target_data[i];
 			if(target == bounding_box.Class)
 			{
@@ -345,17 +347,17 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
 //2、函数声明
 //3、函数定义
 *************************************************************************/
-double sigma_a = 0.1; // 加速度噪声标准差,config
-bool kalman_start_flag = false;
-bool kalman_miss_flag = false;
-double t = 0;
+bool kalman_start_flag = false;  // 卡尔曼滤波器启动标志，用于初始化滤波器
+bool kalman_miss_flag = false;   // 卡尔曼滤波器跟踪丢失标志，当目标丢失过多帧时设为true
+double t = 0;                    // 时间变量，用于卡尔曼滤波器时间计算
 
-int step = 0;
-ros::Time kalman_time;
-double kalman_predict_x = 0.;
-double kalman_predict_y = 0.;
-double tank_time = 0; //config
-double tank_shred = 0;//config
+int step = 0;                    // 卡尔曼滤波器处理步骤：0=未开始，1=学习阶段，2=预测阶段
+ros::Time kalman_time;           // 卡尔曼滤波器时间戳，用于计算时间间隔
+double kalman_predict_x = 0.;    // 卡尔曼滤波器预测的目标X坐标（米）
+double kalman_predict_y = 0.;    // 卡尔曼滤波器预测的目标Y坐标（米）
+double tank_time = 2.0;      // 坦克运动预测时间（秒）
+double tank_shred = 0.2;     // 坦克命中阈值距离（米）
+double sigma_a = 0.1;        // 加速度噪声标准差（m/s²）
 
 class KalmanFilter {
 private:
