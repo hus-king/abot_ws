@@ -28,7 +28,7 @@ using namespace std;
 
 
 #define ALTITUDE 1.0
-#define VIEW_ALTITUDE 1.8
+#define VIEW_ALTITUDE 2.0
 #define QR_ALTITUDE 0.40
 #define RING_HEIGHT 1.50
 #define TANK_ALTITUDE 2.0
@@ -51,6 +51,8 @@ float ego_now_y = 0;
 yolov8_ros_msgs::BoundingBox cb;
 float camera_height;
 float square_yaw_cb;
+float now_target_x = 0;
+float now_target_y = 0;
 
 bool car_found = false;
 bool bridge_found = false;
@@ -624,6 +626,8 @@ bool Kalman_prediction()
     if(ros::Time::now() - kalman_time >= ros::Duration(15))
 	{
 	    step = 2;
+		now_target_x = kalman_predict_x;
+		now_target_y = kalman_predict_y;
 		kalman_time = ros::Time::now();
 	}
 	return false;

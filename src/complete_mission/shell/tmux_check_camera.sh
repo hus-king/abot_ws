@@ -30,15 +30,19 @@ tmux select-layout -t ros_session:0 tiled
 tmux new-window -t ros_session:1 -n monitors_mission
 
 # Pane 0: /mavros/local_position/pose
-tmux send-keys -t ros_session:1 'sleep 6; rostopic echo /mavros/local_position/pose' C-m
+tmux send-keys -t ros_session:1 'sleep 4; rostopic echo /mavros/local_position/pose' C-m
 
 # Pane 1: /object_position
 tmux split-window -h -t ros_session:1
-tmux send-keys -t ros_session:1.1 'sleep 6; rostopic echo /object_position' C-m
+tmux send-keys -t ros_session:1.1 'sleep 4; rostopic echo /object_position' C-m
+
+# Pane 1: /object_position
+tmux split-window -h -t ros_session:1.1
+tmux send-keys -t ros_session:1.2 'sleep 4; roslaunch tutorial_catapult catapult_driver.launch' C-m
 
 # Pane 2: check_camera.launch
-tmux split-window -v -t ros_session:1.1
-tmux send-keys -t ros_session:1.2 'sleep 7; roslaunch complete_mission check_camera.launch' C-m
+tmux split-window -v -t ros_session:1.2
+tmux send-keys -t ros_session:1.3 'sleep 4; roslaunch complete_mission check_camera.launch' C-m
 
 # 整理第二个窗口布局
 tmux select-layout -t ros_session:1 tiled

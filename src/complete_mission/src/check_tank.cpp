@@ -41,6 +41,9 @@ void print_param()
   std::cout << "err_max : " << err_max << std::endl;
   std::cout << "TANK_ALTITUDE : " << TANK_ALTITUDE << std::endl;
   std::cout << "PUT_TANK_ALTITUDE : " << PUT_TANK_ALTITUDE << std::endl;
+  std::cout << "sigma_a : " << sigma_a << std::endl;
+  std::cout << "tank_time : " << tank_time << std::endl;
+  std::cout << "tank_shred : " << tank_shred << std::endl;
 }
 
 
@@ -198,8 +201,6 @@ int main(int argc, char **argv)
   
   //用于追踪目标是否在靠近飞机
   bool catapult_flag = false;
-  float now_target_x = 0;
-  float now_target_y = 0;
   int index = 0;
 
 
@@ -237,15 +238,6 @@ int main(int argc, char **argv)
       //kalman-version
       case 66:
         mission_pos_cruise(now_target_x,now_target_y,TANK_ALTITUDE,0,err_max);
-        if(step == 1)
-        {
-          ;
-        }
-        else if(step == 2)
-        {
-          now_target_x = kalman_predict_x;
-          now_target_y = kalman_predict_y;
-        }
         if(Kalman_prediction())
         {
           mission_num = 67;
@@ -260,7 +252,7 @@ int main(int argc, char **argv)
         break;
       
       case 67:
-        if(mission_pos_cruise(now_target_x ,now_target_y,TANK_ALTITUDE,0,err_max))
+        if(mission_pos_cruise(now_target_x ,now_target_y,PUT_TANK_ALTITUDE,0,err_max))
         {
           if(lib_time_record_func(0.5, ros::Time::now()))
           {
