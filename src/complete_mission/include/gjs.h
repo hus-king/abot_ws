@@ -27,7 +27,7 @@
 using namespace std;
 
 
-#define ALTITUDE 1.0
+#define ALTITUDE 0.8
 #define VIEW_ALTITUDE 2.0
 #define QR_ALTITUDE 0.40
 #define RING_HEIGHT 1.50
@@ -1069,16 +1069,15 @@ void publish_ego_planner_mode(int mode)
 
 /************************************************************************
 函数功能:ego_planner发布目标点函数
-//1、定义变量
-//2、函数声明
-//3、函数定义
+//mode0为正常巡航模式
+//mode1为激进穿门模式
 *************************************************************************/
 float before_ego_pose_x = 0;
 float before_ego_pose_y = 0;
 float before_ego_pose_z = 0;
 bool pub_ego_goal_flag = false;
-bool pub_ego_goal(float x, float y, float z, float err_max, int first_target = 0, int mode = 0);
-bool pub_ego_goal(float x, float y, float z, float err_max, int first_target, int mode)
+bool pub_ego_goal(float x, float y, float z, float err_max, int mode = 0);
+bool pub_ego_goal(float x, float y, float z, float err_max, int mode)
 {
 	ego_planner_mode.data = mode;
 	ego_planner_mode_pub.publish(ego_planner_mode);
@@ -1123,41 +1122,6 @@ bool pub_ego_goal(float x, float y, float z, float err_max, int first_target, in
 		{
 			setpoint_raw.position.z = ground_height;
 			std::cout << "lower than ground height" << std::endl;
-		}
-
-		if (first_target == 1)
-		{
-			std::cout << "get traj" << std::endl;
-			std::cout << "ego_x : " << ego_sub.position.x << std::endl;
-			std::cout << "ego_y : " << ego_sub.position.y << std::endl;
-			std::cout << "ego_z : " << ego_sub.position.z << std::endl;
-			std::cout << "ego_yaw : " << ego_sub.yaw << std::endl;
-			setpoint_raw.type_mask = 0b101111000000; // 101 111 000 000  vx vy　vz x y z+ yaw
-			setpoint_raw.coordinate_frame = 1;
-			setpoint_raw.position.x = ego_sub.position.x;
-			setpoint_raw.position.y = ego_sub.position.y;
-			setpoint_raw.position.z = ego_sub.position.z;
-			setpoint_raw.velocity.x = ego_sub.velocity.x;
-			setpoint_raw.velocity.y = ego_sub.velocity.y;
-			setpoint_raw.velocity.z = ego_sub.velocity.z;
-			setpoint_raw.yaw = 0;
-		}
-		if (first_target == 2)
-		{
-			std::cout << "get traj" << std::endl;
-			std::cout << "ego_x : " << ego_sub.position.x << std::endl;
-			std::cout << "ego_y : " << ego_sub.position.y << std::endl;
-			std::cout << "ego_z : " << ego_sub.position.z << std::endl;
-			std::cout << "ego_yaw : " << ego_sub.yaw << std::endl;
-			setpoint_raw.type_mask = 0b101111000000; // 101 111 000 000  vx vy　vz x y z+ yaw
-			setpoint_raw.coordinate_frame = 1;
-			setpoint_raw.position.x = ego_sub.position.x;
-			setpoint_raw.position.y = ego_sub.position.y;
-			setpoint_raw.position.z = ego_sub.position.z;
-			setpoint_raw.velocity.x = ego_sub.velocity.x;
-			setpoint_raw.velocity.y = ego_sub.velocity.y;
-			setpoint_raw.velocity.z = ego_sub.velocity.z;
-			setpoint_raw.yaw = 3.14;
 		}
 	}
 	else

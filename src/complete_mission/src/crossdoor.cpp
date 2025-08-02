@@ -216,7 +216,7 @@ int main(int argc, char **argv)
         break;
            
        case 2:
-        if (pub_ego_goal(target_x, target_y, 0.8, err_max_ego, 0, 0))
+        if (pub_ego_goal(target_x, target_y, 0.8, err_max_ego,0))
         {
             now_yaw = yaw;
             mission_num = 21;
@@ -225,7 +225,7 @@ int main(int argc, char **argv)
         break;
         
         case 3:
-          if (pub_ego_goal(target1_x, target1_y, 0.8, err_max_ego, 0, 1))
+          if (pub_ego_goal(target1_x, target1_y, 0.8, err_max_ego,1))
           {
               now_yaw = yaw;
               mission_num = 10;

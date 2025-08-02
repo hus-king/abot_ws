@@ -231,8 +231,6 @@ int main(int argc, char **argv)
             now_target_x = box_target_x;
             now_target_y = box_target_y;
         }
-        
-
         break;
       
       //kalman-version

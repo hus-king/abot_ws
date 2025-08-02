@@ -8,7 +8,7 @@
 int mission_num = 0;   //mission_flag
 int tmp_marker_id = 1;
 int box_number = 0;
-float square_yaw = 0;
+float now_yaw = 0;
 // the four picture
 vector<float> target_array_x;
 vector<float> target_array_y;
@@ -19,6 +19,8 @@ float target3_x = 0, target3_y = 0;
 float target4_x = 0, target4_y = 0;
 float target5_x = 0, target5_y = 0;
 float target6_x = 0, target6_y = 0;
+float target7_x = 0, target7_y = 0;
+
 //只投放car，bridge，跳过pillbox，tank，tent
 
 
@@ -48,7 +50,8 @@ void print_param()
   std::cout << "target4 : ( " << target4_x << ", " << target4_y << " )" << std::endl;
   std::cout << "target5 : ( " << target5_x << ", " << target5_y << " )" << std::endl;
   std::cout << "target6 : ( " << target6_x << ", " << target6_y << " )" << std::endl;
-  
+  std::cout << "target7 : ( " << target7_x << ", " << target7_y << " )" << std::endl;
+
   std::cout << "park : ( " << park_x << ", " << park_y << " )" << std::endl;
 
   
@@ -129,6 +132,8 @@ int main(int argc, char **argv)
   nh.param<float>("target5_y", target5_y, 0);
   nh.param<float>("target6_x", target6_x, 0);
   nh.param<float>("target6_y", target6_y, 0);
+  nh.param<float>("target7_x", target7_x, 0);
+  nh.param<float>("target7_y", target7_y, 0);
 
   nh.param<float>("track_distance", track_distance, 0); 
   nh.param<float>("err_max", err_max, 0);
@@ -242,7 +247,7 @@ int main(int argc, char **argv)
      setpoint_raw.position.y = 0;
      setpoint_raw.position.z = ALTITUDE;
      setpoint_raw.yaw = 0;
-     mission_pos_cruise(0, 0, ALTITUDE, 0, 0.2);
+     mission_pos_cruise(0, 0, ALTITUDE, 0, err_max);
      mavros_setpoint_pos_pub.publish(setpoint_raw);
      ros::spinOnce();
      rate.sleep();
@@ -297,19 +302,30 @@ int main(int argc, char **argv)
           if(lib_time_record_func(0.5,ros::Time::now()))
           {
             mission_num = 2;
+            now_yaw = yaw;
             last_request = ros::Time::now();
           } 
         }
        break;
-      
-      case 2:
-        if (pub_ego_goal(target_array_x[index], target_array_y[index], ALTITUDE, 0.2 , 0))
+      case 2://确保进入ego_planner时的高度正确
+        if(current_position_cruise(0, 0, ALTITUDE, now_yaw, err_max))
+        {
+          if(lib_time_record_func(0.5,ros::Time::now()))
+          {
+            mission_num = 20;
+            last_request = ros::Time::now();
+          } 
+        }
+        break;
+
+      case 20:
+        if (pub_ego_goal(target_array_x[index], target_array_y[index], ALTITUDE, err_max_ego , 0))
         {
           if(lib_time_record_func(0.5,ros::Time::now()))
           {
             if(box_number >=2)
             {
-              if(index == 3)
+              if(index == 4)
               {
                 mission_num = 5;//动态靶
                 last_request = ros::Time::now();
@@ -317,14 +333,14 @@ int main(int argc, char **argv)
               else
               {
                 mission_num = 2;//投放完成直接跳过
+                now_yaw = yaw;
                 last_request = ros::Time::now();
                 index++;
               }  
             }
             else
             {
-              square_yaw = square_yaw_cb;
-              cout<<"square_yaw = "<<square_yaw<<endl;
+              now_yaw = yaw;
               mission_num = 21;//识别
               last_request = ros::Time::now();
             }
@@ -333,7 +349,7 @@ int main(int argc, char **argv)
         break;
 
       case 21://悬停
-        if(mission_pos_cruise(target_array_x[index], target_array_y[index], ALTITUDE, square_yaw, err_max))
+        if(mission_pos_cruise(target_array_x[index], target_array_y[index], ALTITUDE, now_yaw, err_max))
         {
           if(lib_time_record_func(0.5,ros::Time::now()))
           {
@@ -349,7 +365,7 @@ int main(int argc, char **argv)
         break;
 
       case 3:
-        mission_pos_cruise(target_array_x[index], target_array_y[index], VIEW_ALTITUDE, square_yaw, err_max);
+        mission_pos_cruise(target_array_x[index], target_array_y[index], VIEW_ALTITUDE, now_yaw, err_max);
         if(local_pos.pose.pose.position.z > (VIEW_ALTITUDE - 0.1))
         {
           start_checking = true;
@@ -380,7 +396,7 @@ int main(int argc, char **argv)
 
       //左下
       case 31:
-        mission_pos_cruise(target_array_x[index] - track_distance, target_array_y[index] + track_distance, VIEW_ALTITUDE, square_yaw, err_max);
+        mission_pos_cruise(target_array_x[index] - track_distance, target_array_y[index] + track_distance, VIEW_ALTITUDE, now_yaw, err_max);
         if(found)
         {
           mission_num = 4;
@@ -393,6 +409,7 @@ int main(int argc, char **argv)
         else if(found_false)
         {
           mission_num = 2;
+          now_yaw = yaw;
           start_checking = false;
           found_false = false; // 重置found_false状态
           index ++;//走完一个点
@@ -407,7 +424,7 @@ int main(int argc, char **argv)
       
       //左上
       case 32:
-        mission_pos_cruise(target_array_x[index] + track_distance, target_array_y[index] + track_distance, VIEW_ALTITUDE, square_yaw, err_max);
+        mission_pos_cruise(target_array_x[index] + track_distance, target_array_y[index] + track_distance, VIEW_ALTITUDE, now_yaw, err_max);
         if(found)
         {
           mission_num = 4;
@@ -420,6 +437,7 @@ int main(int argc, char **argv)
         else if(found_false)
         {
           mission_num = 2;
+          now_yaw = yaw;
           start_checking = false;
           found_false = false; // 重置found_false状态
           index ++;//走完一个点
@@ -434,7 +452,7 @@ int main(int argc, char **argv)
       
       //右上
       case 33:
-        mission_pos_cruise(target_array_x[index] + track_distance, target_array_y[index] - track_distance, VIEW_ALTITUDE, square_yaw, err_max);
+        mission_pos_cruise(target_array_x[index] + track_distance, target_array_y[index] - track_distance, VIEW_ALTITUDE, now_yaw, err_max);
         if(found)
         {
           mission_num = 4;//投放
@@ -447,6 +465,7 @@ int main(int argc, char **argv)
         else if(found_false)
         {
           mission_num = 2;//跳过
+          now_yaw = yaw;
           start_checking = false;
           found_false = false; // 重置found_false状态
           index ++;//走完一个点
@@ -461,7 +480,7 @@ int main(int argc, char **argv)
       
       //右下
       case 34:
-        mission_pos_cruise(target_array_x[index] - track_distance, target_array_y[index] - track_distance, VIEW_ALTITUDE, square_yaw, err_max);
+        mission_pos_cruise(target_array_x[index] - track_distance, target_array_y[index] - track_distance, VIEW_ALTITUDE, now_yaw, err_max);
         if(found)
         {
           mission_num = 4;
@@ -474,6 +493,7 @@ int main(int argc, char **argv)
         else if(found_false)
         {
           mission_num = 2;
+          now_yaw = yaw;
           start_checking = false;
           found_false = false; // 重置found_false状态
           index ++;//走完一个点
@@ -484,6 +504,7 @@ int main(int argc, char **argv)
           if(index < 3)
           {
             mission_num = 2;
+            now_yaw = yaw;
             index ++;//走完一个点
             last_request = ros::Time::now();
           }
@@ -503,19 +524,22 @@ int main(int argc, char **argv)
         if(box_number == 1)
         {
           now_check_catapult_x = 0;
-          now_check_catapult_y = -check_catapult_y;
+          // now_check_catapult_y = -check_catapult_y;
+          now_check_catapult_y = 0;
         }
         else if(box_number == 2)
         {
           now_check_catapult_x = 0;
-          now_check_catapult_y = check_catapult_y;
+          // now_check_catapult_y = check_catapult_y;
+          now_check_catapult_y = 0;
         }
-        if(mission_pos_cruise(now_target_x + now_check_catapult_x, now_target_y + now_check_catapult_y, 0.05, square_yaw, err_max))
+        if(mission_pos_cruise(now_target_x + now_check_catapult_x, now_target_y + now_check_catapult_y, 0.05, now_yaw, err_max))
         {//当前位置修正后投放
           if (lib_time_record_func(1.0, ros::Time::now())){//等待
             if(index < 3)
             {
               mission_num = 2;
+              now_yaw = yaw;
               last_request = ros::Time::now();
               index ++;
             }
@@ -538,152 +562,183 @@ int main(int argc, char **argv)
       
       //动态靶
       case 5:
-        if(pub_ego_goal(target5_x, target5_y, ALTITUDE, 0.2, 0))
+        if(pub_ego_goal(target5_x, target5_y, ALTITUDE, err_max_ego, 0))
         {
           if (lib_time_record_func(0.5, ros::Time::now())){
-            mission_num = 61; //61-only_guess,66-kalman-method
-            //kalman_start_flag = true;
-            //now_target_x = target5_x, now_target_y = target5_y ;
+            mission_num = 61;
+            now_yaw = yaw;
             last_request = ros::Time::now();
           }
         }
         break;
 
-      //视觉任务（61-63）不用卡尔曼
-      //61:识别第一帧且距离接近于正中心的值
-      case 61://飞到识别到的tank处
-        mission_pos_cruise(target5_x, target5_y, ALTITUDE, 0, err_max);
-        if(found)
-        {
-          mission_num = 62;
-          now_target_x = box_target_x;
-          now_target_y = box_target_y;
-          last_request = ros::Time::now();
+      case 61://飞高识别
+        mission_pos_cruise(target5_x, target5_x, TANK_ALTITUDE, now_yaw, err_max);  // 悬停
+        only_tank = true;  // 仅检测tank目标
+        if(local_pos.pose.pose.position.z > (TANK_ALTITUDE - 0.1)) start_checking = true;
+        if(found_tank){
+            kalman_start_flag = true ;
+            ROS_INFO("kalman_start_flag = true!!");
+            mission_num = 62;
+            last_request = ros::Time::now();
+            now_target_x = box_target_x;
+            now_target_y = box_target_y;
         }
         break;
-      
-      case 62://在识别到的tank处悬停并等待直到距离足够近就投放
-        if(mission_pos_cruise(now_target_x + check_catapult_x, now_target_y, ALTITUDE, 0, err_max))
+      case 62://悬停
+        if(current_position_cruise(0, 0, ALTITUDE, now_yaw, err_max))
         {
-          if(!found)
+          if(lib_time_record_func(0.5,ros::Time::now()))
           {
-            catapult_flag = true;
-          }
-          if(catapult_flag && found)
-          {
-            if(abs((box_target_x - now_target_x)*(box_target_x - now_target_x) + (box_target_y - now_target_y)*(box_target_y - now_target_y)) <= catapult_shred)
-            {
-              catapult_pub_box_large.publish(catapult_msg);
-              mission_num = 63;
-              last_request = ros::Time::now();
-              catapult_flag = false;
-            }
-          }
-        }
-        break;
-
-      case 63:
-       if(mission_pos_cruise(now_target_x + check_catapult_x, now_target_y, ALTITUDE, 0, err_max))
-        { 
-          catapult_pub_box_large.publish(catapult_msg);
-          if (lib_time_record_func(1.0, ros::Time::now())){
             mission_num = 7;
-            last_request = ros::Time::now();
-          }
-        }
+            last_request = ros::Time::now(); 
         break;
+
+      //61:识别第一帧且距离接近于正中心的值
+      // case 61://飞到识别到的tank处
+      //   mission_pos_cruise(target5_x, target5_y, ALTITUDE, 0, err_max);
+      //   if(found)
+      //   {
+      //     mission_num = 62;
+      //     now_target_x = box_target_x;
+      //     now_target_y = box_target_y;
+      //     last_request = ros::Time::now();
+      //   }
+      //   break;
+      
+      // case 62://在识别到的tank处悬停并等待直到距离足够近就投放
+      //   if(mission_pos_cruise(now_target_x + check_catapult_x, now_target_y, ALTITUDE, 0, err_max))
+      //   {
+      //     if(!found)
+      //     {
+      //       catapult_flag = true;
+      //     }
+      //     if(catapult_flag && found)
+      //     {
+      //       if(abs((box_target_x - now_target_x)*(box_target_x - now_target_x) + (box_target_y - now_target_y)*(box_target_y - now_target_y)) <= catapult_shred)
+      //       {
+      //         catapult_pub_box_large.publish(catapult_msg);
+      //         mission_num = 63;
+      //         last_request = ros::Time::now();
+      //         catapult_flag = false;
+      //       }
+      //     }
+      //   }
+      //   break;
+
+      // case 63:
+      //  if(mission_pos_cruise(now_target_x + check_catapult_x, now_target_y, ALTITUDE, 0, err_max))
+      //   { 
+      //     catapult_pub_box_large.publish(catapult_msg);
+      //     if (lib_time_record_func(1.0, ros::Time::now())){
+      //       mission_num = 7;
+      //       last_request = ros::Time::now();
+      //     }
+      //   }
+      //   break;
       
       //kalman-version
-      case 66://飞高预测
-        mission_pos_cruise(now_target_x + check_catapult_x,now_target_y,TANK_ALTITUDE,0,err_max);
-        if(step == 1)
-        {
-          ;
-        }
-        else if(step == 2)
-        {
-          now_target_x = kalman_predict_x;
-          now_target_y = kalman_predict_y;
-        }
-        if(Kalman_prediction())
-        {
-          mission_num = 67;
-          catapult_pub_box_large.publish(catapult_msg);
-          last_request = ros::Time::now();
-        }
-        if(ros::Time::now() - last_request >= ros::Duration(60))
-        {
-          mission_num = 67;
-          last_request = ros::Time::now();
-        }
-        break;
+      // case 66://飞高预测
+      //   mission_pos_cruise(now_target_x + check_catapult_x,now_target_y,TANK_ALTITUDE,0,err_max);
+      //   if(step == 1)
+      //   {
+      //     ;
+      //   }
+      //   else if(step == 2)
+      //   {
+      //     now_target_x = kalman_predict_x;
+      //     now_target_y = kalman_predict_y;
+      //   }
+      //   if(Kalman_prediction())
+      //   {
+      //     mission_num = 67;
+      //     catapult_pub_box_large.publish(catapult_msg);
+      //     last_request = ros::Time::now();
+      //   }
+      //   if(ros::Time::now() - last_request >= ros::Duration(60))
+      //   {
+      //     mission_num = 67;
+      //     last_request = ros::Time::now();
+      //   }
+      //   break;
       
-      case 67://飞到预测点并等待1s
-        if(mission_pos_cruise(now_target_x + check_catapult_x,now_target_y,TANK_ALTITUDE,0,err_max))
-        {
-          if(lib_time_record_func(1.0, ros::Time::now()))
-          {
-            mission_num = 68;
-            last_request = ros::Time::now();
-          }
-          catapult_pub_box_large.publish(catapult_msg);
-        }
-        else if(ros::Time::now() - last_request > ros::Duration(5.0))
-        {
-          mission_num = 68;
-          last_request = ros::Time::now();
-          catapult_pub_box_large.publish(catapult_msg);
-        }
-        break;
+      // case 67://飞到预测点并等待1s
+      //   if(mission_pos_cruise(now_target_x + check_catapult_x,now_target_y,TANK_ALTITUDE,0,err_max))
+      //   {
+      //     if(lib_time_record_func(1.0, ros::Time::now()))
+      //     {
+      //       mission_num = 68;
+      //       last_request = ros::Time::now();
+      //     }
+      //     catapult_pub_box_large.publish(catapult_msg);
+      //   }
+      //   else if(ros::Time::now() - last_request > ros::Duration(5.0))
+      //   {
+      //     mission_num = 68;
+      //     last_request = ros::Time::now();
+      //     catapult_pub_box_large.publish(catapult_msg);
+      //   }
+      //   break;
 
-      case 68://哎你怎么似了
-        if(mission_pos_cruise(now_target_x + check_catapult_x,now_target_y,ALTITUDE,0,err_max))
-        {
-          if(lib_time_record_func(0.5, ros::Time::now()))
-          {
-            mission_num = 68;
-            last_request = ros::Time::now();
-          }
-        }
-        else if(ros::Time::now() - last_request > ros::Duration(2.0))
-        {
-          mission_num = 68;
-          last_request = ros::Time::now();
-        }
-        break;
+      // case 68://哎你怎么似了
+      //   if(mission_pos_cruise(now_target_x + check_catapult_x,now_target_y,ALTITUDE,0,err_max))
+      //   {
+      //     if(lib_time_record_func(0.5, ros::Time::now()))
+      //     {
+      //       mission_num = 68;
+      //       last_request = ros::Time::now();
+      //     }
+      //   }
+      //   else if(ros::Time::now() - last_request > ros::Duration(2.0))
+      //   {
+      //     mission_num = 68;
+      //     last_request = ros::Time::now();
+      //   }
+      //   break;
        
       
       //门
       case 7:
-      if(pub_ego_goal(target6_x, target6_y, ALTITUDE, 0.2, 0))
-      {
-          if (lib_time_record_func(0.3, ros::Time::now())){
-            mission_num = 9;
-            last_request = ros::Time::now();
-          }
-      }
-      break;
-      
-      //穿门任务
-      case 8: //飞向二维码识别点
-        if(mission_pos_cruise(target6_x , target6_y , ALTITUDE , 0 , err_max))
+        if(pub_ego_goal(target6_x, target6_y, ALTITUDE, 0.2, 0))
         {
-          if (lib_time_record_func(0.5, ros::Time::now())){
-            mission_num = 12;
-            last_request = ros::Time::now();
-          }
+            if (lib_time_record_func(0.3, ros::Time::now())){
+              mission_num = 71;
+              last_request = ros::Time::now();
+            }
         }
-        else if(ros::Time::now() - last_request > ros::Duration(5.0))
+        break;
+
+      case 71://悬停
+        if(mission_pos_cruise(target6_x, target6_y, ALTITUDE, now_yaw, err_max))
         {
-          mission_num = 12;
+          if(lib_time_record_func(3,ros::Time::now()))
+          {
+            mission_num = 72;
+            last_request = ros::Time::now();
+            cout<<"正常退出:)"<<endl;
+          }
+          cout<<"在误差范围内"<<endl;
+        }
+        else if(ros::Time::now() - last_request >= ros::Duration(6.0))
+        {
+          mission_num = 72;
           last_request = ros::Time::now();
+          cout<<"哭也算时间哦;("<<endl;
         }
+        break;
+
+      case 72://穿门
+        if (pub_ego_goal(target7_x, target7_y, ALTITUDE, err_max_ego,1))
+          {
+            now_yaw = yaw;
+            mission_num = 9;
+          }
         break;
       
       //降落点降落
       case 9:
         arm_cmd.request.value = false;
-        if(mission_pos_cruise(park_x,park_y,0.01,0,err_max)){
+        if(mission_pos_cruise(target7_x,target7_y,0.01,0,err_max)){
           ROS_INFO("Vehicle disarmed");
           mission_num = -1;
         }
@@ -704,6 +759,8 @@ int main(int argc, char **argv)
     if(mission_num == -1) exit(0);
   }
   return 0;
+    }
+  }
 }
 
 
