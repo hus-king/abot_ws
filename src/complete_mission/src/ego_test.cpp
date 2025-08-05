@@ -15,7 +15,7 @@ float err_max_ego = 0.2;
 
 void print_param()
 {
-  std::cout << "ALTITUDE : " << ALTITUDE << std::endl;
+  std::cout << "ALTITUDE : " << 0.8 << std::endl;
   std::cout << "err_max_ego : " << err_max_ego << std::endl;
   std::cout << "err_max : " << err_max << std::endl;
   std::cout << "target_x : " << target_x << std::endl;
@@ -129,49 +129,9 @@ int main(int argc, char **argv)
   // 记录当前时间，并赋值给变量last_request
   ros::Time last_request = ros::Time::now();
 
-   while (ros::ok())
-   {
-     if (current_state.mode != "OFFBOARD" && (ros::Time::now() - last_request > ros::Duration(3.0)))
-     {
-       if (set_mode_client.call(offb_set_mode) && offb_set_mode.response.mode_sent)
-       {
-         ROS_INFO("Offboard enabled");
-       }
-       last_request = ros::Time::now();
-     }
-     else
-    {
-       if (!current_state.armed && (ros::Time::now() - last_request > ros::Duration(3.0)))
-       {
-         if (arming_client.call(arm_cmd) && arm_cmd.response.success)
-        {
-           ROS_INFO("Vehicle armed");
-         }
-         last_request = ros::Time::now();
-       }
-    }
-     // 当无人机到达起飞点高度后，悬停3秒后进入任务模式，提高视觉效果
-     if (fabs(local_pos.pose.pose.position.z - 0.8) < 0.1)
-     {
-       if (ros::Time::now() - last_request > ros::Duration(1.0))
-       {
-         mission_num = 1;
-         last_request = ros::Time::now();
-         break;
-       }
-     }
-    
-     setpoint_raw.type_mask = /*1 + 2 + 4 + 8 + 16 + 32*/ +64 + 128 + 256 + 512 /*+ 1024 + 2048*/;
-     setpoint_raw.coordinate_frame = 1;
-     setpoint_raw.position.x = 0;
-     setpoint_raw.position.y = 0;
-     setpoint_raw.position.z = 0.8;
-     setpoint_raw.yaw = 0;
-     mission_pos_cruise(0, 0, 0.8, 0, err_max);
-     mavros_setpoint_pos_pub.publish(setpoint_raw);
-     ros::spinOnce();
-     rate.sleep();
-  }
+  // 跳过OFFBOARD/arming流程，直接进入后续任务
+  mission_num = 2; // 你可以根据需要改为其它编号
+  std::cout << "[调试模式] 跳过解锁，直接进入任务流程，mission_num = " << mission_num << std::endl;
   
   
 
@@ -216,7 +176,7 @@ int main(int argc, char **argv)
         break;
            
        case 2:
-        if (pub_ego_goal(target_x, target_y, 0.8, err_max_ego,0,0))
+        if (pub_ego_goal(target_x, target_y, 0.8, err_max_ego, 0, 0))
         {
             now_yaw = yaw;
             mission_num = 21;
@@ -225,7 +185,7 @@ int main(int argc, char **argv)
         break;
         
         case 3:
-          if (pub_ego_goal(target1_x, target1_y, 0.8, err_max_ego,0,1))
+          if (pub_ego_goal(target1_x, target1_y, 0.8, err_max_ego, 0, 1))
           {
               now_yaw = yaw;
               mission_num = 10;

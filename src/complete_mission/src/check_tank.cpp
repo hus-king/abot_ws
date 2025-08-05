@@ -41,6 +41,9 @@ void print_param()
   std::cout << "err_max : " << err_max << std::endl;
   std::cout << "TANK_ALTITUDE : " << TANK_ALTITUDE << std::endl;
   std::cout << "PUT_TANK_ALTITUDE : " << PUT_TANK_ALTITUDE << std::endl;
+  std::cout << "sigma_a : " << sigma_a << std::endl;
+  std::cout << "tank_time : " << tank_time << std::endl;
+  std::cout << "tank_shred : " << tank_shred << std::endl;
 }
 
 
@@ -198,8 +201,6 @@ int main(int argc, char **argv)
   
   //用于追踪目标是否在靠近飞机
   bool catapult_flag = false;
-  float now_target_x = 0;
-  float now_target_y = 0;
   int index = 0;
 
 
@@ -220,30 +221,21 @@ int main(int argc, char **argv)
     {
       case 3:
         mission_pos_cruise(0, 0, TANK_ALTITUDE, 0, err_max);  // 悬停
+        only_tank = true;  // 仅检测tank目标
         if(local_pos.pose.pose.position.z > (TANK_ALTITUDE - 0.1)) start_checking = true;
         if(found_tank){
+            kalman_start_flag = true ;
+            ROS_INFO("kalman_start_flag = true!!");
             mission_num = 66;
             last_request = ros::Time::now();
-            start_checking = false;
             now_target_x = box_target_x;
             now_target_y = box_target_y;
         }
-        
-
         break;
       
       //kalman-version
       case 66:
-        mission_pos_cruise(now_target_x + check_catapult_x,now_target_y,TANK_ALTITUDE,0,err_max);
-        if(step == 1)
-        {
-          ;
-        }
-        else if(step == 2)
-        {
-          now_target_x = kalman_predict_x;
-          now_target_y = kalman_predict_y;
-        }
+        mission_pos_cruise(now_target_x,now_target_y,TANK_ALTITUDE,0,err_max);
         if(Kalman_prediction())
         {
           mission_num = 67;
@@ -258,34 +250,39 @@ int main(int argc, char **argv)
         break;
       
       case 67:
-        if(mission_pos_cruise(now_target_x + check_catapult_x,now_target_y,TANK_ALTITUDE,0,err_max))
+        if(mission_pos_cruise(now_target_x ,now_target_y,PUT_TANK_ALTITUDE,0,err_max))
         {
-          if(lib_time_record_func(1.0, ros::Time::now()))
+          if(lib_time_record_func(0.5, ros::Time::now()))
           {
             mission_num = 68;
+            start_checking = false;
+            only_tank = false;
             last_request = ros::Time::now();
           }
           catapult_pub_box_large.publish(catapult_msg);
         }
-        else if(ros::Time::now() - last_request > ros::Duration(5.0))
+        else if(ros::Time::now() - last_request > ros::Duration(2.0))
         {
+          cout<<"out of 2 seconds"<<endl;
           mission_num = 68;
+          start_checking = false;
+          only_tank = false;
           last_request = ros::Time::now();
           catapult_pub_box_large.publish(catapult_msg);
         }
         break;
 
       case 68:
-        if(mission_pos_cruise(now_target_x + check_catapult_x,now_target_y,PUT_TANK_ALTITUDE,0,err_max))
+        if(mission_pos_cruise(now_target_x ,now_target_y,PUT_TANK_ALTITUDE,0,err_max))
         {
-          if(lib_time_record_func(0.5, ros::Time::now()))
+          if(lib_time_record_func(2, ros::Time::now()))
           {
             mission_num = 10;
             last_request = ros::Time::now();
             cout << "投放移动靶" << endl;
           }
         }
-        else if(ros::Time::now() - last_request > ros::Duration(2.0))
+        else if(ros::Time::now() - last_request > ros::Duration(4.0))
         {
           mission_num = 10;
           last_request = ros::Time::now();
@@ -293,7 +290,7 @@ int main(int argc, char **argv)
         break;
       
       case 10:
-        mission_pos_cruise(0 , 0 , 0.5, 0, err_max);
+        mission_pos_cruise(0 , 0 , 0.4, 0, err_max);
         cout << "保持悬停状态..." << endl;
         break;
     }

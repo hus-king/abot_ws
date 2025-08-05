@@ -9,6 +9,7 @@
 #include <ros/ros.h>
 #include "bspline_opt/lbfgs.hpp"
 #include <traj_utils/plan_container.hpp>
+#include <std_msgs/Int32.h>
 
 // Gradient and elasitc band optimization
 
@@ -162,9 +163,10 @@ namespace ego_planner
 
     int a;
     //
-    double dist0_, swarm_clearance_; // safe distance
+    double dist0_1, swarm_clearance_; // safe distance
+    double dist0_2; // safe distance for rebound
     double max_vel_, max_acc_;       // dynamic limits
-
+    
     int variable_num_;              // optimization variables
     int iter_num_;                  // iteration of the solver
     Eigen::VectorXd best_variable_; //

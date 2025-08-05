@@ -1,24 +1,42 @@
 #include "bspline_opt/bspline_optimizer.h"
 #include "bspline_opt/gradient_descent_optimizer.h"
+#include <std_msgs/Int32.h>
 // using namespace std;
+int ego_mode;
+ros::Timer ego_mode_timer_; // 新增：定时器
+ros::Subscriber ego_planner_mode_sub; // 新增：订阅器
+
+// 新增：ego_planner_mode回调函数
+void ego_planner_mode_callback(const std_msgs::Int32::ConstPtr &msg)
+{
+    ego_mode = msg->data;
+    ROS_INFO("[BsplineOptimizer] Received ego_planner_mode update: %d", ego_mode);
+}
 
 namespace ego_planner
 {
 
   void BsplineOptimizer::setParam(ros::NodeHandle &nh)
-  {
+{
     nh.param("optimization/lambda_smooth", lambda1_, -1.0);
     nh.param("optimization/lambda_collision", lambda2_, -1.0);
     nh.param("optimization/lambda_feasibility", lambda3_, -1.0);
     nh.param("optimization/lambda_fitness", lambda4_, -1.0);
-
-    nh.param("optimization/dist0", dist0_, -1.0);
+    
+    // 初始化ego_mode，首先尝试从参数服务器读取默认值
+    nh.param("/ego_planner_mode", ego_mode, 0);
+    
+    // 订阅ego_planner_mode话题进行实时更新
+    ego_planner_mode_sub = nh.subscribe("/ego_planner_mode", 10, ego_planner_mode_callback);
+    ROS_INFO("[BsplineOptimizer] Subscribed to /ego_planner_mode topic for real-time updates");
+    
+    nh.param("optimization/dist0_1", dist0_1, -1.0);
+    nh.param("optimization/dist0_2", dist0_2, -1.0);
     nh.param("optimization/swarm_clearance", swarm_clearance_, -1.0);
     nh.param("optimization/max_vel", max_vel_, -1.0);
     nh.param("optimization/max_acc", max_acc_, -1.0);
-
     nh.param("optimization/order", order_, 3);
-  }
+}
 
   void BsplineOptimizer::setEnvironment(const GridMap::Ptr &map)
   {
@@ -432,11 +450,31 @@ namespace ego_planner
    * It was written separately, just because I did it once and it has been running stably since March 2020.
    * But I will merge then someday.*/
   std::vector<std::pair<int, int>> BsplineOptimizer::initControlPoints(Eigen::MatrixXd &init_points, bool flag_first_init /*= true*/)
-  {
-
+  {  
     if (flag_first_init)
     {
-      cps_.clearance = dist0_;
+      ROS_INFO("[BsplineOptimizer] ego_mode is set to: %d", ego_mode);
+      if(ego_mode== -1)
+      {
+        ROS_ERROR("ego_mode is not set, please set it first!");
+      }
+      else if(ego_mode == 0)
+      {
+        ROS_INFO("ego_mode is set to 0, which means the ego planner is in the normal mode.");
+        cps_.clearance = dist0_1;
+        cout<< "cps_.clearance=" << cps_.clearance << endl;
+      }
+      else if(ego_mode == 1)
+      {
+        ROS_INFO("ego_mode is set to 1, which means the ego planner is in the crossingdoor mode.");
+        cps_.clearance = dist0_2;
+        cout<< "cps_.clearance=" << cps_.clearance << endl;
+      }
+      else
+      {
+        ROS_ERROR("ego_mode is set to an unknown value: %d", ego_mode);
+        return std::vector<std::pair<int, int>>();
+      }
       cps_.resize(init_points.cols());
       cps_.points = init_points;
     }
@@ -882,6 +920,7 @@ namespace ego_planner
       {
         double dist = (cps_.points.col(i) - cps_.base_point[i][j]).dot(cps_.direction[i][j]);
         double dist_err = cps_.clearance - dist;
+        ROS_ERROR("cps_.clearance = %f, dist = %f, dist_err = %f", cps_.clearance, dist, dist_err);
         Eigen::Vector3d dist_grad = cps_.direction[i][j];
 
         if (dist_err < 0)

@@ -18,6 +18,7 @@
 #include "quadrotor_msgs/PositionCommand.h"
 #include <std_msgs/String.h>
 #include <std_msgs/Empty.h>
+#include <std_msgs/Int32.h>
 #include <yolov8_ros_msgs/BoundingBoxes.h>
 #include <vector>
 #include <eigen3/Eigen/Dense>
@@ -26,8 +27,8 @@
 using namespace std;
 
 
-#define ALTITUDE 1.0
-#define VIEW_ALTITUDE 1.8
+#define ALTITUDE 0.8
+#define VIEW_ALTITUDE 2.0
 #define QR_ALTITUDE 0.40
 #define RING_HEIGHT 1.50
 #define TANK_ALTITUDE 2.0
@@ -36,18 +37,22 @@ using namespace std;
 mavros_msgs::PositionTarget setpoint_raw;
 ros::Publisher planner_goal_pub;
 ros::Publisher finish_ego_pub;
+ros::Publisher ego_planner_mode_pub;
 std_msgs::Bool finish_ego_flag;
+std_msgs::Int32 ego_planner_mode;
+int now_mode = -1 ;
 
 int spin_flag = 0 ;
 
-
-float map_size_z = 1.1;
-float ground_height = 0.7;
+float map_size_z = 0.8;
+float ground_height = 0.8;
 float ego_now_x = 0;
 float ego_now_y = 0;
 yolov8_ros_msgs::BoundingBox cb;
 float camera_height;
 float square_yaw_cb;
+float now_target_x = 0;
+float now_target_y = 0;
 
 bool car_found = false;
 bool bridge_found = false;
@@ -190,29 +195,30 @@ bool current_position_cruise(float x, float y, float z, float yaw, float error_m
 //2、函数声明
 //3、函数定义
 *************************************************************************/
-bool start_checking = false;//是否开始yolo检测
-bool found = false;//是否累计10次发现固定靶子
-bool found_false = false; // 发现错误目标
-bool found_tank = false; // 是否累计十次发现移动靶子
+bool start_checking = false;  // YOLO检测启动标志：true=开始目标检测，false=停止检测
+bool only_tank = false; // 仅检测tank目标标志：true=只检测tank，false=检测car和bridge
+bool found = false;           // 固定目标发现标志：累计检测到car或bridge达到阈值次数时为true
+bool found_false = false;     // 错误目标发现标志：连续检测到非期望目标达到阈值次数时为true
+bool found_tank = false;      // 移动目标发现标志：累计检测到tank达到阈值次数时为true
 
-std::string have_found;
-float box_target_x;
-float box_target_y;
-float fx = 474.00855717;
-float fy = 471.47044825;
-float cx = 329.17278775;
-// float cy = 207.32440702;
-float cy = 250.0;
+std::string have_found;       // 最近检测到的目标类别名称
+float box_target_x;           // 目标在世界坐标系中的X坐标（米）
+float box_target_y;           // 目标在世界坐标系中的Y坐标（米）
+float fx = 474.00855717;      // 相机内参：X轴焦距（像素）
+float fy = 471.47044825;      // 相机内参：Y轴焦距（像素）
+float cx = 329.17278775;      // 相机内参：图像中心X坐标（像素）
+// float cy = 207.32440702;   // 原始相机内参：图像中心Y坐标（像素）
+float cy = 250.0;             // 修正后的相机内参：图像中心Y坐标（像素）
 
-std::string target_data[2] = {"car","bridge"};  // 只检测car和bridge
+std::string target_data[2] = {"car","bridge"};  // 目标检测类别数组，只检测车辆和桥梁两种目标
 
-// 累计检测计数器
-int car_detect_count = 0;
-int bridge_detect_count = 0;
-int tank_detect_count = 0;  // 坦克检测计数器（用于单独判断）
-int false_detect_count = 0;  // 错误目标检测计数器（不是car/bridge的都算错误）
-const int DETECT_THRESHOLD = 10;  // 需要累计检测10次才算找到
-const int FALSE_THRESHOLD = 10;   // 连续10次错误检测则found_false为true
+// 累计检测计数器 - 用于消除误检，提高检测可靠性
+int car_detect_count = 0;        // 车辆目标累计检测次数计数器
+int bridge_detect_count = 0;     // 桥梁目标累计检测次数计数器
+int tank_detect_count = 0;       // 坦克目标累计检测次数计数器（用于移动目标跟踪）
+int false_detect_count = 0;      // 错误目标检测计数器（检测到非期望目标时递增）
+const int DETECT_THRESHOLD = 10; // 目标确认阈值：需要累计检测10次才确认找到目标（消除误检）
+const int FALSE_THRESHOLD = 10;  // 错误检测阈值：连续10次错误检测则found_false为true（避开干扰目标）
 
 void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){    
     if(!start_checking) {
@@ -241,6 +247,7 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
         // 检查是否为car或bridge且之前未找到
 		bool is_target_found = false;
 		for(int i = 0; i < 2; i++){
+			if(only_tank) break; // 如果仅检测tank，跳过其他目标
             string target = target_data[i];
 			if(target == bounding_box.Class)
 			{
@@ -253,11 +260,21 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
                 
 				have_found = target;
                 
-                // 计算目标位置
+                // 计算目标位置（考虑飞机yaw角度）
 				float center_x = bounding_box.xmin;
 				float center_y = bounding_box.ymin;
-				box_target_x = (cy - center_y) * (local_pos.pose.pose.position.z + camera_height) / fy + local_pos.pose.pose.position.x;
-                box_target_y = (cx - center_x) * (local_pos.pose.pose.position.z + camera_height) / fx + local_pos.pose.pose.position.y;
+				
+				// 相机坐标系下的偏移量（相对于相机光心）
+				float camera_offset_x = (cy - center_y) * (local_pos.pose.pose.position.z + camera_height) / fy;
+				float camera_offset_y = (cx - center_x) * (local_pos.pose.pose.position.z + camera_height) / fx;
+				
+				// 考虑飞机yaw角度，将相机坐标系转换到世界坐标系
+				float cos_yaw = cos(yaw);
+				float sin_yaw = sin(yaw);
+				
+				// 世界坐标系下的目标位置
+				box_target_x = local_pos.pose.pose.position.x + camera_offset_x * cos_yaw - camera_offset_y * sin_yaw;
+				box_target_y = local_pos.pose.pose.position.y + camera_offset_x * sin_yaw + camera_offset_y * cos_yaw;
 				std::cout << "center_x = " << center_x << ", center_y = " << center_y << std::endl;
 				std::cout << "calculate_box_target_x = " << box_target_x << ", calculate_box_target_y = " << box_target_y << std::endl;
 				
@@ -277,17 +294,25 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
 		if(bounding_box.Class == "tank") {
 		    tank_detected_this_frame = true;
 			have_found = "tank";
-			// 计算目标位置
+			// 计算目标位置（考虑飞机yaw角度）
 			float center_x = bounding_box.xmin;
 			float center_y = bounding_box.ymin;
-			box_target_x = (cy - center_y) * (local_pos.pose.pose.position.z + camera_height) / fy + local_pos.pose.pose.position.x;
-			box_target_y = (cx - center_x) * (local_pos.pose.pose.position.z + camera_height) / fx + local_pos.pose.pose.position.y;
+			
+			// 相机坐标系下的偏移量（相对于相机光心）
+			float camera_offset_x = (cy - center_y) * (local_pos.pose.pose.position.z + camera_height) / fy;
+			float camera_offset_y = (cx - center_x) * (local_pos.pose.pose.position.z + camera_height) / fx;
+			
+			// 考虑飞机yaw角度，将相机坐标系转换到世界坐标系
+			float cos_yaw = cos(yaw);
+			float sin_yaw = sin(yaw);
+			
+			// 世界坐标系下的目标位置
+			box_target_x = local_pos.pose.pose.position.x + camera_offset_x * cos_yaw - camera_offset_y * sin_yaw;
+			box_target_y = local_pos.pose.pose.position.y + camera_offset_x * sin_yaw + camera_offset_y * cos_yaw;
+			
 			std::cout << "tank center_x = " << center_x << ", center_y = " << center_y << std::endl;
 			std::cout << "tank calculate_box_target_x = " << box_target_x << ", calculate_box_target_y = " << box_target_y << std::endl;
-
-		}
-		
-		// 如果不是car或bridge，增加错误检测计数（包括tank）
+		}		// 如果不是car或bridge，增加错误检测计数（包括tank）
 		if(!is_target_found) {
 		    false_detect_count++;
 		    std::cout << "本次检测到非目标类别: " << bounding_box.Class << "，错误检测次数: " << false_detect_count << "/" << FALSE_THRESHOLD << std::endl;
@@ -342,17 +367,17 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
 //2、函数声明
 //3、函数定义
 *************************************************************************/
-double sigma_a = 0.1; // 加速度噪声标准差,config
-bool kalman_start_flag = false;
-bool kalman_miss_flag = false;
-double t = 0;
+bool kalman_start_flag = false;  // 卡尔曼滤波器启动标志，用于初始化滤波器
+bool kalman_miss_flag = false;   // 卡尔曼滤波器跟踪丢失标志，当目标丢失过多帧时设为true
+double t = 0;                    // 时间变量，用于卡尔曼滤波器时间计算
 
-int step = 0;
-ros::Time kalman_time;
-double kalman_predict_x = 0.;
-double kalman_predict_y = 0.;
-double tank_time = 0; //config
-double tank_shred = 0;//config
+int step = 0;                    // 卡尔曼滤波器处理步骤：0=未开始，1=学习阶段，2=预测阶段
+ros::Time kalman_time;           // 卡尔曼滤波器时间戳，用于计算时间间隔
+double kalman_predict_x = 0.;    // 卡尔曼滤波器预测的目标X坐标（米）
+double kalman_predict_y = 0.;    // 卡尔曼滤波器预测的目标Y坐标（米）
+double tank_time = 2.0;      // 坦克运动预测时间（秒）
+double tank_shred = 0.2;     // 坦克命中阈值距离（米）
+double sigma_a = 0.1;        // 加速度噪声标准差（m/s²）
 
 class KalmanFilter {
 private:
@@ -619,6 +644,8 @@ bool Kalman_prediction()
     if(ros::Time::now() - kalman_time >= ros::Duration(15))
 	{
 	    step = 2;
+		now_target_x = kalman_predict_x;
+		now_target_y = kalman_predict_y;
 		kalman_time = ros::Time::now();
 	}
 	return false;
@@ -1040,21 +1067,40 @@ void PI_attitude_control()
 	ROS_INFO("已触发控制器: vel_x = %.2f, vel_y = %.2f, z = %.2f, yaw = %.2f", setpoint_raw.velocity.x, setpoint_raw.velocity.y, setpoint_raw.position.z, setpoint_raw.yaw);
 	ROS_INFO("now_yaw: %.2f", square_yaw_cb * 180.0 / M_PI);
 	ROS_INFO("ego_target_x = %.2f, ego_target_y = %.2f", ego_now_x, ego_now_y);
+	ROS_INFO("now_mode = %d", now_mode);
 }
 
 /************************************************************************
-函数功能:ego_planner发布目标点函数
+函数功能: 发布ego planner模式
 //1、定义变量
 //2、函数声明
 //3、函数定义
+*************************************************************************/
+void publish_ego_planner_mode(int mode);
+void publish_ego_planner_mode(int mode)
+{
+	ego_planner_mode.data = mode;
+	ego_planner_mode_pub.publish(ego_planner_mode);
+	ROS_INFO("发布ego planner模式: %d", mode);
+}
+
+
+/************************************************************************
+函数功能:ego_planner发布目标点函数
+//mode0为正常巡航模式
+//mode1为激进穿门模式
 *************************************************************************/
 float before_ego_pose_x = 0;
 float before_ego_pose_y = 0;
 float before_ego_pose_z = 0;
 bool pub_ego_goal_flag = false;
-bool pub_ego_goal(float x, float y, float z, float err_max, int first_target = 0);
-bool pub_ego_goal(float x, float y, float z, float err_max, int first_target)
+bool pub_ego_goal(float x, float y, float z, float err_max, int first_target = 0,int mode = 0);
+bool pub_ego_goal(float x, float y, float z, float err_max, int first_target,int mode)
 {
+	ego_planner_mode.data = mode;
+	ego_planner_mode_pub.publish(ego_planner_mode);
+	ROS_INFO("发布ego planner模式: %d", mode);
+	now_mode = mode;
 	before_ego_pose_x = local_pos.pose.pose.position.x;
 	before_ego_pose_y = local_pos.pose.pose.position.y;
 	before_ego_pose_z = local_pos.pose.pose.position.z;
@@ -1096,40 +1142,40 @@ bool pub_ego_goal(float x, float y, float z, float err_max, int first_target)
 			std::cout << "lower than ground height" << std::endl;
 		}
 
-		if (first_target == 1)
-		{
-			std::cout << "get traj" << std::endl;
-			std::cout << "ego_x : " << ego_sub.position.x << std::endl;
-			std::cout << "ego_y : " << ego_sub.position.y << std::endl;
-			std::cout << "ego_z : " << ego_sub.position.z << std::endl;
-			std::cout << "ego_yaw : " << ego_sub.yaw << std::endl;
-			setpoint_raw.type_mask = 0b101111000000; // 101 111 000 000  vx vy　vz x y z+ yaw
-			setpoint_raw.coordinate_frame = 1;
-			setpoint_raw.position.x = ego_sub.position.x;
-			setpoint_raw.position.y = ego_sub.position.y;
-			setpoint_raw.position.z = ego_sub.position.z;
-			setpoint_raw.velocity.x = ego_sub.velocity.x;
-			setpoint_raw.velocity.y = ego_sub.velocity.y;
-			setpoint_raw.velocity.z = ego_sub.velocity.z;
-			setpoint_raw.yaw = 0;
-		}
-		if (first_target == 2)
-		{
-			std::cout << "get traj" << std::endl;
-			std::cout << "ego_x : " << ego_sub.position.x << std::endl;
-			std::cout << "ego_y : " << ego_sub.position.y << std::endl;
-			std::cout << "ego_z : " << ego_sub.position.z << std::endl;
-			std::cout << "ego_yaw : " << ego_sub.yaw << std::endl;
-			setpoint_raw.type_mask = 0b101111000000; // 101 111 000 000  vx vy　vz x y z+ yaw
-			setpoint_raw.coordinate_frame = 1;
-			setpoint_raw.position.x = ego_sub.position.x;
-			setpoint_raw.position.y = ego_sub.position.y;
-			setpoint_raw.position.z = ego_sub.position.z;
-			setpoint_raw.velocity.x = ego_sub.velocity.x;
-			setpoint_raw.velocity.y = ego_sub.velocity.y;
-			setpoint_raw.velocity.z = ego_sub.velocity.z;
-			setpoint_raw.yaw = 3.14;
-		}
+        if (first_target == 1)
+        {
+            std::cout << "get traj" << std::endl;
+            std::cout << "ego_x : " << ego_sub.position.x << std::endl;
+            std::cout << "ego_y : " << ego_sub.position.y << std::endl;
+            std::cout << "ego_z : " << ego_sub.position.z << std::endl;
+            std::cout << "ego_yaw : " << ego_sub.yaw << std::endl;
+            setpoint_raw.type_mask = 0b101111000000; // 101 111 000 000  vx vy　vz x y z+ yaw
+            setpoint_raw.coordinate_frame = 1;
+            setpoint_raw.position.x = ego_sub.position.x;
+            setpoint_raw.position.y = ego_sub.position.y;
+            setpoint_raw.position.z = ego_sub.position.z;
+            setpoint_raw.velocity.x = ego_sub.velocity.x;
+            setpoint_raw.velocity.y = ego_sub.velocity.y;
+            setpoint_raw.velocity.z = ego_sub.velocity.z;
+            setpoint_raw.yaw = 0;
+        }
+        if (first_target == 2)
+        {
+            std::cout << "get traj" << std::endl;
+            std::cout << "ego_x : " << ego_sub.position.x << std::endl;
+            std::cout << "ego_y : " << ego_sub.position.y << std::endl;
+            std::cout << "ego_z : " << ego_sub.position.z << std::endl;
+            std::cout << "ego_yaw : " << ego_sub.yaw << std::endl;
+            setpoint_raw.type_mask = 0b101111000000; // 101 111 000 000  vx vy　vz x y z+ yaw
+            setpoint_raw.coordinate_frame = 1;
+            setpoint_raw.position.x = ego_sub.position.x;
+            setpoint_raw.position.y = ego_sub.position.y;
+            setpoint_raw.position.z = ego_sub.position.z;
+            setpoint_raw.velocity.x = ego_sub.velocity.x;
+            setpoint_raw.velocity.y = ego_sub.velocity.y;
+            setpoint_raw.velocity.z = ego_sub.velocity.z;
+            setpoint_raw.yaw = 3.14;
+        }
 	}
 	else
 	{
@@ -1155,4 +1201,11 @@ bool pub_ego_goal(float x, float y, float z, float err_max, int first_target)
 		return true;
 	}
 	return false;
+}
+
+float calculate_yaw(float target_x, float target_y){
+	float delta_x = target_x - local_pos.pose.pose.position.x;
+	float delta_y = target_y - local_pos.pose.pose.position.y;
+	float cal_yaw = atan2(delta_y, delta_x);
+	return cal_yaw;
 }

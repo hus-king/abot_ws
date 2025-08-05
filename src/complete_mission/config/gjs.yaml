@@ -28,24 +28,30 @@ point4: 1
 target_qr_x : 1.85
 target_qr_y : 0.00
 
-target1_x : 1.10
-target1_y : -0.58
+target1_x : 1.07
+target1_y : -0.63
 
-target2_x : 3.35
-target2_y : 0.15
+target2_x : 2.30
+target2_y : -1.75
 
-target3_x : 6.18
-target3_y : -2.09
+target3_x : 3.30
+target3_y : -0.05
 
-target4_x : 4.80
-target4_y : 1.62
+target4_x : 1.50
+target4_y : 1.80
 
-# the last ar
-target5_x : 0.00
-target5_y : 0.00
+# tank
+target5_x : 4.63
+target5_y : -1.00
 
-target6_x : 0.00
-target6_y : 0.00
+target6_x : 6.75
+target6_y : 1.80
+
+target7_x : 6.40
+target7_y : -2.40
+
+target8_x : 5.00
+target8_y : 2.28
 
 park_left_x: -0.08
 park_left_y: 1.6
@@ -60,7 +66,7 @@ ring_back_y : -2.4
 
 # fly height
 fly_height : 0.6
-err_max : 0.1
+err_max : 0.15
 
 check_catapult_x : 0.025
 check_catapult_y : 0.015
@@ -83,4 +89,4 @@ tank_shred : 0
 
 camera_height : 0.075
 
-err_max_ego : 0.2
+err_max_ego : 0.3

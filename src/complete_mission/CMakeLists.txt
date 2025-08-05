@@ -271,6 +271,12 @@ target_link_libraries(check_camera ${catkin_LIBRARIES} lib Eigen3::Eigen)
 add_executable(check_tank src/check_tank.cpp)
 target_link_libraries(check_tank ${catkin_LIBRARIES} lib Eigen3::Eigen)
 
+add_executable(crossdoor src/crossdoor.cpp)
+target_link_libraries(crossdoor ${catkin_LIBRARIES} lib Eigen3::Eigen)
+
+add_executable(test_ego src/test_ego.cpp)
+target_link_libraries(test_ego ${catkin_LIBRARIES} lib Eigen3::Eigen)
+
 add_executable(IPC_test src/IPC_test.cpp)
 target_link_libraries(IPC_test ${catkin_LIBRARIES})
 

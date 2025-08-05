@@ -10,6 +10,10 @@ tmux send-keys -t view_session:0 'rosrun complete_mission laser_to_worldframe' C
 tmux split-window -h -t view_session:0
 tmux send-keys -t view_session:0.1 'sleep 3; roslaunch complete_mission ego_planner_mid360.launch' C-m
 
+# Pane 1: rosbag record
+tmux split-window -h -t view_session:0.1
+tmux send-keys -t view_session:0.2 'cd ~/rosbag ; rosbag record /ego_planner_node/grid_map/occupancy_inflate /cloud /Laser_map /Odometry /path /ego_planner_node/goal_point /ego_planner_node/optimal_list /clicked_point /ego_planner/goal /mavros/local_position/odom /mavros/local_position/pose' C-m
+
 # 自动整理布局为平铺
 tmux select-layout -t view_session:0 tiled
 

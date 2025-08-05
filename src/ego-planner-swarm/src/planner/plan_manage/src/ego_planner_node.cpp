@@ -17,7 +17,7 @@ int main(int argc, char **argv)
 
   // ros::Duration(1.0).sleep();
   ros::spin();
-
+  ROS_INFO("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
   return 0;
 }
 

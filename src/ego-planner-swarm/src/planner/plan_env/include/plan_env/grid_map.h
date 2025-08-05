@@ -1,6 +1,6 @@
 #ifndef _GRID_MAP_H
 #define _GRID_MAP_H
-
+#include <std_msgs/Int32.h>
 #include <Eigen/Eigen>
 #include <Eigen/StdVector>
 #include <cv_bridge/cv_bridge.h>
@@ -145,7 +145,7 @@ public:
   ~GridMap() {}
 
   enum { POSE_STAMPED = 1, ODOMETRY = 2, INVALID_IDX = -10000 };
-
+  void map_ego_mode_callback(const std_msgs::Int32::ConstPtr &msg);
   // occupancy map management
   void resetBuffer();
   void resetBuffer(Eigen::Vector3d min, Eigen::Vector3d max);
@@ -802,3 +802,4 @@ inline double GridMap::getResolution() { return mp_.resolution_; }
 // inline double GridMap::getResolution() { return mp_.resolution_; }
 
 // #endif
+

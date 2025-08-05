@@ -1,22 +1,15 @@
 #include <lib_library.h>
-#include <check_camera.h>
+#include <gjs.h>
 
 
 int mission_num = 0;   //mission_flag
 int tmp_marker_id = 1;
-int box_number = 0;
 
 
 // the four picture
 vector<float> target_array_x;
 vector<float> target_array_y;
 
-float target1_x = 0, target1_y = 0;
-float target2_x = 0, target2_y = 0;
-float target3_x = 0, target3_y = 0;
-float target4_x = 0, target4_y = 0;
-float target5_x = 0, target5_y = 0;
-float target6_x = 0, target6_y = 0;
 
 float park_x = 0,park_y = 0;
 
@@ -24,10 +17,7 @@ float track_distance;
 
 float temp_x = 0 , temp_y = 0 ;
 
-float err_max = 0;
-float err_max_ego = 0;
-
-float fly_height = 1.5;
+float err_max = 0.1;
 
 
 
@@ -37,7 +27,7 @@ float catapult_shred;
 
 void print_param()
 {
-  std::cout << "ALTITUDE : " << ALTITUDE << std::endl;
+  std::cout << "VIEW_ALTITUDE : " << VIEW_ALTITUDE << std::endl;
   std::cout << "camera_height : " << camera_height << std::endl;
   std::cout << "err_max : " << err_max << std::endl;
 }
@@ -84,8 +74,10 @@ int main(int argc, char **argv)
   // 请求控制舵机客户端
   ros::ServiceClient ctrl_pwm_client = nh.serviceClient<mavros_msgs::CommandLong>("mavros/cmd/command");
 
-  ros::Publisher catapult_pub_box1 = nh.advertise<std_msgs::Empty>("servo/front_left/open", 1);
-  ros::Publisher catapult_pub_box2 = nh.advertise<std_msgs::Empty>("servo/front_right/open", 1);
+  ros::Publisher gjs_catapult_pub_box1 = nh.advertise<std_msgs::Empty>("servo/front_left/open", 1);
+  ros::Publisher gjs_catapult_pub_box2 = nh.advertise<std_msgs::Empty>("servo/front_right/open", 1);
+  ros::Publisher gjs_catapult_pub_box3 = nh.advertise<std_msgs::Empty>("servo/back_left/open", 1);
+  ros::Publisher gjs_catapult_pub_box4 = nh.advertise<std_msgs::Empty>("servo/back_right/open", 1);
   ros::Publisher catapult_pub_box_large = nh.advertise<std_msgs::Empty>("servo/all/open", 1);
   ros::Subscriber yolo_ros_box_sub = nh.subscribe<yolov8_ros_msgs::BoundingBoxes>("/object_position", 1, yolo_ros_cb);
 
@@ -116,7 +108,7 @@ int main(int argc, char **argv)
   setpoint_raw.coordinate_frame = 1;
   setpoint_raw.position.x = 0;
   setpoint_raw.position.y = 0;
-  setpoint_raw.position.z = ALTITUDE;
+  setpoint_raw.position.z = VIEW_ALTITUDE;
   setpoint_raw.yaw = 0;
 
   // send a few setpoints before starting
@@ -175,9 +167,9 @@ int main(int argc, char **argv)
      setpoint_raw.coordinate_frame = 1;
      setpoint_raw.position.x = 0;
      setpoint_raw.position.y = 0;
-     setpoint_raw.position.z = ALTITUDE;
+     setpoint_raw.position.z = VIEW_ALTITUDE;
      setpoint_raw.yaw = 0;
-     mission_pos_cruise(0, 0, ALTITUDE, 0, 0.2);
+     mission_pos_cruise(0, 0, VIEW_ALTITUDE, 0, 0.2);
      mavros_setpoint_pos_pub.publish(setpoint_raw);
      ros::spinOnce();
      rate.sleep();
@@ -214,39 +206,44 @@ int main(int argc, char **argv)
     switch (mission_num)
     {
       case 3:
-        mission_pos_cruise(0, 0, ALTITUDE, 0, err_max);  // 悬停
-        if(cb.Class == "pillbox" && local_pos.pose.pose.position.z > (ALTITUDE - 0.1))  // 检测到pillbox目标且高度合适
+        mission_pos_cruise(0, 0, VIEW_ALTITUDE, 0, err_max);  // 悬停
+        if(local_pos.pose.pose.position.z > (VIEW_ALTITUDE - 0.1)) start_checking = true; // 上升至VIEW_ALTITUDE高度开始识别
+        if(found)  // 确定找到
         {
           mission_num = 4;
           now_target_x = box_target_x;
           now_target_y = box_target_y;
-          box_number = 1;  // 设置为第一个盒子
           last_request = ros::Time::now();
-          cout << "检测到pillbox目标，高度合适，开始投放任务" << endl;
-          cout << "当前高度: " << local_pos.pose.pose.position.z << ", 要求高度: > " << (ALTITUDE - 0.1) << endl;
+          cout << "检测到目标，开始投放任务" << endl;
+          start_checking = false; // 停止检测
         }
         break;
-      case 4://投放到pillbox目标
-        cout<<"检测到的目标类别: "<<cb.Class<<endl;
-        cout<<"检测置信度: "<<cb.probability<<endl;
-        cout << "目标位置: now_target_x = "<<now_target_x << ", now_target_y = " << now_target_y << endl;
-        
-        
+      case 4:
         if(mission_pos_cruise(now_target_x , now_target_y , 0.05, 0, err_max))
         {
           // 执行投放
-          catapult_pub_box1.publish(catapult_msg);
+          gjs_catapult_pub_box4.publish(catapult_msg);
           cout << "投放完成，保持悬停状态" << endl;
           
           if (lib_time_record_func(2.0, ros::Time::now())){
-            mission_num = 10;  // 进入悬停状态
+            mission_num = 5;  // 进入悬停状态
+            last_request = ros::Time::now();
+          }
+        }
+        break;
+
+      case 5:
+        if(mission_pos_cruise(0 , 0 , VIEW_ALTITUDE, 0, err_max))
+        {
+          if (lib_time_record_func(2.0, ros::Time::now())){
+            mission_num = 10;
             last_request = ros::Time::now();
           }
         }
         break;
       
       case 10:
-        mission_pos_cruise(now_target_x , now_target_y , 0.05, 0, err_max);
+        mission_pos_cruise(0 , 0 , 0.05, 0, err_max);
         cout << "保持悬停状态..." << endl;
         break;
     }
