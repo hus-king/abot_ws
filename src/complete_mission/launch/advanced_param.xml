@@ -112,7 +112,7 @@
     <param name="grid_map/local_update_range_y"  value="5.5" /> 
     <param name="grid_map/local_update_range_z"  value="4.5" /> 
     <!-- 膨胀距离 -->
-    <param name="grid_map/obstacles_inflation"     value="0.4" /> 
+    <param name="grid_map/obstacles_inflation"     value="0.4" /> <!--0.4-->
     <param name="grid_map/obstacles_inflation_door"     value="0.2" /> <!--穿门模式-->
     <param name="grid_map/local_map_margin" value="5"/>
     <!-- ground_height -->
@@ -165,7 +165,7 @@
     <!-- 平滑系数 -->
     <param name="optimization/lambda_smooth" value="0.3" type="double"/>
     <!-- 避障系数 -->
-    <param name="optimization/lambda_collision" value="0.5" type="double"/>
+    <param name="optimization/lambda_collision" value="2.0" type="double"/>
     <!-- 可行性系数 -->
     <param name="optimization/lambda_feasibility" value="0.1" type="double"/>
     <!-- ? -->
@@ -180,9 +180,9 @@
     <param name="bspline/limit_acc" value="$(arg max_acc)" type="double"/>
     <param name="bspline/limit_ratio" value="1.1" type="double"/>
     <!-- ego巡航模式——mode 1 -->
-    <param name="optimization/dist0_1" value="0.6" type="double"/><!--巡航模式，更加安全-->
+    <param name="optimization/dist0_1" value="0.6" type="double"/><!--巡航模式，更加安全0.6-->
     <!-- ego穿门模式——mode 2 -->
-    <param name="optimization/dist0_2" value="0.1" type="double"/><!--穿门模式-->
+    <param name="optimization/dist0_2" value="0.2" type="double"/><!--穿门模式-->
   </node>
 
 </launch>

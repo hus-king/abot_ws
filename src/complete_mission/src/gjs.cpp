@@ -221,7 +221,7 @@ int main(int argc, char **argv)
      {
        if (ros::Time::now() - last_request > ros::Duration(1.0))
        {
-         mission_num = 1;
+         mission_num = 71;
          break;
        }
      }

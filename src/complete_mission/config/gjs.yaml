@@ -45,16 +45,16 @@ target5_x : 4.63
 target5_y : -1.00
 
 target6_x : 6.75
-target6_y : 1.80
+target6_y : 2.2
 
-target7_x : 6.40
-target7_y : -2.40
+target7_x : 5.0
+target7_y : 0.0
+
+# target7_x : 6.40
+# target7_y : -2.40
 
 target8_x : 5.00
 target8_y : 2.28
-
-target7_x : 0.00
-target7_y : 0.00
 
 park_left_x: -0.08
 park_left_y: 1.6
@@ -92,4 +92,4 @@ tank_shred : 0
 
 camera_height : 0.075
 
-err_max_ego : 0.3
+err_max_ego : 0.15
