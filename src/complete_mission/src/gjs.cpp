@@ -79,7 +79,6 @@ int main(int argc, char **argv)
   finish_ego_pub = nh.advertise<std_msgs::Bool>("/finish_ego", 1);
   ego_planner_mode_pub = nh.advertise<std_msgs::Int32>("/ego_planner_mode", 10);
 
-
   // 订阅mavros相关话题
   ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("mavros/state", 10, state_cb);
   ros::Subscriber local_pos_sub = nh.subscribe<nav_msgs::Odometry>("/mavros/local_position/odom", 10, local_pos_cb);
@@ -288,6 +287,7 @@ int main(int argc, char **argv)
           if(lib_time_record_func(0.5, ros::Time::now()))
           {
             mission_num = 2;
+            now_yaw = yaw;
             last_request = ros::Time::now();
           } 
         }
@@ -405,6 +405,7 @@ int main(int argc, char **argv)
         else if(found_false)
         {
           mission_num = 2;
+          now_yaw = yaw;
           start_checking = false;
           found_false = false; // 重置found_false状态
           index++; // 走完一个点
@@ -436,6 +437,7 @@ int main(int argc, char **argv)
         else if(found_false)
         {
           mission_num = 2;
+          now_yaw = yaw;
           start_checking = false;
           found_false = false; // 重置found_false状态
           index++; // 走完一个点
@@ -498,6 +500,7 @@ int main(int argc, char **argv)
         else if(found_false)
         {
           mission_num = 2;
+          now_yaw = yaw;
           start_checking = false;
           found_false = false; // 重置found_false状态
           index++; // 走完一个点
@@ -547,6 +550,7 @@ int main(int argc, char **argv)
             if(index < 3)
             {
               mission_num = 2;
+              now_yaw = yaw;
               last_request = ros::Time::now();
               index++;
             }

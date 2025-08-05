@@ -53,6 +53,8 @@ void GridMap::initMap(ros::NodeHandle &nh)
 
   node_.param("grid_map/map_size_x", x_size, -1.0);
   node_.param("grid_map/map_size_y", y_size, -1.0);
+
+  if(map_ego_mode==0){
   node_.param("grid_map/map_size_z", z_size, -1.0);
 
   node_.param("grid_map/map_size_z", map_size_z__normal, -1.0);

@@ -53,6 +53,9 @@ target7_y : -2.40
 target8_x : 5.00
 target8_y : 2.28
 
+target7_x : 0.00
+target7_y : 0.00
+
 park_left_x: -0.08
 park_left_y: 1.6
 park_right_x: -0.08
