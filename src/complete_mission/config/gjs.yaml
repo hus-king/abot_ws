@@ -53,8 +53,12 @@ target7_y : -2.32
 # target7_x : 6.40
 # target7_y : -2.40
 
-target8_x : 5.00
-target8_y : 2.1
+# target8_x : 5.00
+# target8_y : 2.1
+
+
+target8_x : 0
+target8_y : 0
 
 park_left_x: -0.08
 park_left_y: 1.6
@@ -71,8 +75,8 @@ ring_back_y : -2.4
 fly_height : 0.6
 err_max : 0.15
 
-check_catapult_x : 0.025
-check_catapult_y : 0.015
+check_catapult_x : 0.165
+check_catapult_y : 0.145
 track_distance : 0.2
 
 qr_msg1 : raccoon
@@ -90,6 +94,7 @@ sigma_a : 0.1
 tank_time : 0
 tank_shred : 0
 
-camera_height : 0.04
+camera_height : 0.062
 
-err_max_ego : 0.15
+err_max_ego : 0.25
+camera_offset_body_x : 0.085

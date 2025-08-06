@@ -58,6 +58,7 @@ void print_param()
   std::cout << "check_catapult_y: " << check_catapult_y << std::endl;
   std::cout << "catapult_shred: " << catapult_shred << std::endl;
   std::cout << "camera_height: " << camera_height << std::endl;
+  std::cout << "camera_offset_body_x: " << camera_offset_body_x << std::endl;
 }
 
 
@@ -135,6 +136,7 @@ int main(int argc, char **argv)
   nh.param<double>("tank_shred", tank_shred, 0.0);
 
   nh.param<float>("camera_height", camera_height, 0);
+  nh.param<float>("camera_offset_body_x", camera_offset_body_x, 0.0);
 
   target_array_x.push_back(target1_x);
   target_array_y.push_back(target1_y);
@@ -267,6 +269,9 @@ int main(int argc, char **argv)
 
   int tmp_mission = 1;
   std_msgs::Empty catapult_msg;
+
+  float cos_yaw = 1;
+  float sin_yaw = 0;
 
   while (ros::ok())
   {
@@ -529,23 +534,25 @@ int main(int argc, char **argv)
         cout << "bounding_box.probability: " << cb.probability << endl;
         cout << "box_target_x = " << box_target_x << ", box_target_y = " << box_target_y << endl;
         found = false; // 重置found状态
-        
+      // box_target_x = local_pos.pose.pose.position.x + camera_offset_x * cos_yaw - camera_offset_y * sin_yaw;
+			// box_target_y = local_pos.pose.pose.position.y + camera_offset_x * sin_yaw + camera_offset_y * cos_yaw;
+        cos_yaw = cos(now_yaw);
+				sin_yaw = sin(now_yaw);
         if(box_number == 1)
         {
-          now_check_catapult_x = 0;
-          // now_check_catapult_y = -check_catapult_y;
-          now_check_catapult_y = 0;
+          now_check_catapult_x = check_catapult_y * sin_yaw;
+          now_check_catapult_y = - check_catapult_y * cos_yaw;
         }
         else if(box_number == 2)
         {
-          now_check_catapult_x = 0;
-          now_check_catapult_y = 0;
+          now_check_catapult_x = - check_catapult_y * sin_yaw;
+          now_check_catapult_y = check_catapult_y * cos_yaw;
         }
         
-        if(mission_pos_cruise(now_target_x + now_check_catapult_x, now_target_y + now_check_catapult_y, 0.15, now_yaw, err_max))
+        if(mission_pos_cruise(now_target_x + now_check_catapult_x, now_target_y + now_check_catapult_y, 0.05, now_yaw, err_max))
         {
           // 当前位置修正后投放
-          if (lib_time_record_func(1.0, ros::Time::now()))
+          if (lib_time_record_func(2.0, ros::Time::now()))
           {
             if(index < 3)
             {
@@ -560,6 +567,7 @@ int main(int argc, char **argv)
               last_request = ros::Time::now();
             }
           }
+
           
           if(box_number == 1)
           {
@@ -756,7 +764,7 @@ int main(int argc, char **argv)
           {
             if (lib_time_record_func(0.3, ros::Time::now()))
             {
-              mission_num = 7;
+              mission_num = 10;
               ego_check = false; // 重置ego_check状态
               last_request = ros::Time::now();
               now_yaw = yaw;
@@ -821,10 +829,12 @@ int main(int argc, char **argv)
       
       case 10: // 在起飞点降落
         arm_cmd.request.value = false;
-        if(mission_pos_cruise(0, 0, 0.01, 0, err_max))
+        if(mission_pos_cruise(0, 0, 0.02, 0, err_max))
         {
-          ROS_INFO("Vehicle disarmed");
-          mission_num = -1;
+          if (lib_time_record_func(5.0, ros::Time::now()))
+          {
+            mission_num = -1; // 任务结束
+          }
         }
         break;
     }

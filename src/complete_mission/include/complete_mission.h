@@ -17,6 +17,7 @@
 #include <geometry_msgs/Twist.h>
 #include "quadrotor_msgs/PositionCommand.h"
 #include <std_msgs/String.h>
+#include <std_msgs/Bool.h>
 #include <std_msgs/Empty.h>
 #include <circle_detector/CirclePosition.h>
 #include <yolov8_ros_msgs/BoundingBoxes.h>
@@ -24,7 +25,7 @@
 using namespace std;
 
 
-#define ALTITUDE 1.0
+#define ALTITUDE 1.2
 #define VIEW_ALTITUDE 1.0
 #define QR_ALTITUDE 0.40
 #define RING_HEIGHT 1.50
@@ -38,6 +39,11 @@ int spin_flag = 0 ;
 
 float map_size_z = 1.1;
 float ground_height = 0.9;
+
+float calculate(float x1,float y1,float x2,float y2)
+{
+	return abs(sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2)));
+}
 
 /************************************************************************
 函数功能1：无人机状态回调函数
@@ -282,6 +288,38 @@ bool current_position_cruise(float x, float y, float z, float yaw, float error_m
 }
 
 /************************************************************************
+函数功能: black_square
+//1、定义变量
+//2、函数声明
+//3、函数定义
+*************************************************************************/
+
+float fx = 531.256452402983;
+float fy = 531.062457146004;
+float cx = 331.091420250469;
+float cy = 248.782850955389;
+
+float black_target_x = 0;
+float black_target_y = 0;
+float black_dx = 0;
+float black_dy = 0;
+
+void black_square_cb(const geometry_msgs::Point::ConstPtr &msg){
+
+	if(msg->x<0 ||msg->y <0)
+	{
+		return;
+	}
+	black_dx = (cy - msg->y) * (local_pos.pose.pose.position.z + 0.03)/fy;
+	black_dy = (cx - msg->x) * (local_pos.pose.pose.position.z + 0.03)/fx;
+	black_target_x = (cy - msg->y) * (local_pos.pose.pose.position.z + 0.03)/fy + local_pos.pose.pose.position.x - 0.08;
+    black_target_y = (cx - msg->x) * (local_pos.pose.pose.position.z + 0.03)/fx + local_pos.pose.pose.position.y;
+	return;
+}
+
+
+
+/************************************************************************
 函数功能: yolov8
 //1、定义变量
 //2、函数声明
@@ -289,6 +327,8 @@ bool current_position_cruise(float x, float y, float z, float yaw, float error_m
 *************************************************************************/
 bool start_checking = false;//是否开始yolo检测
 bool found = false;//是否发现目标
+float box_target_x = 0;
+float box_target_y = 0;
 // std::map<std::string, int> class_map = {
 // 	{"apple", 0}, {"aquarium_fish", 1}, {"baby", 2}, {"bear", 3}, {"beaver", 4},
 // 	{"bed", 5}, {"bee", 6}, {"beetle", 7}, {"bicycle", 8}, {"bottle", 9},
@@ -347,6 +387,16 @@ std::string have_found;
 // }
 
 
+float dx0 = 0;
+float dy = 0;
+
+float center_x = 0;
+float center_y = 0;
+
+float yolo_x = 0;
+float yolo_y = 0;
+
+
 void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){    
     if(!start_checking) return;
 	found = false;   
@@ -359,12 +409,69 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
 			{
 				have_found = target;
 				found = true;
+				center_x = bounding_box.xmin;
+				center_y = bounding_box.ymin;
+				dx0 = (cy - center_y) * (local_pos.pose.pose.position.z + 0.03)/fy;
+				dy = (cx - center_x) * (local_pos.pose.pose.position.z + 0.03)/fx;
+				yolo_x = bounding_box.xmin;
+				yolo_y = bounding_box.ymin;
+
+				// box_target_x = (cy - center_y) * (local_pos.pose.pose.position.z + 0.03)/fy + local_pos.pose.pose.position.x - 0.08;
+				// box_target_y = (cx - center_x) * (local_pos.pose.pose.position.z + 0.03)/fx + local_pos.pose.pose.position.y;
 				break;
 			}
 
 		}
     }
 
+}
+
+float black_shred = 0.3;
+
+bool judge_box_target(float target_x,float target_y)
+{
+	float centerbox_x = 0,centerbox_y = 0;
+	// if(black_square_x < 0 || black_square_y < 0)
+	// {
+	// 	centerbox_x = yolo_x;
+	// 	centerbox_y = yolo_y;
+	// 	ROS_WARN("using yolo to calculate 3D point");
+	// }
+	// else
+	// {
+	// 	centerbox_x = black_square_x;
+	// 	centerbox_y = black_square_y;
+	// 	ROS_WARN("using black_square_method to calculate 3D point");
+	// }
+	// box_target_x = (cy - centerbox_y) * (local_pos.pose.pose.position.z + 0.03)/fy + local_pos.pose.pose.position.x - 0.08;
+    // box_target_y = (cx - centerbox_x) * (local_pos.pose.pose.position.z + 0.03)/fx + local_pos.pose.pose.position.y;
+
+	//test_open
+	if(calculate(target_x,target_y,black_target_x,black_target_y) > black_shred)
+	{
+		box_target_x = local_pos.pose.pose.position.x;
+		box_target_y = local_pos.pose.pose.position.y;
+		return false;
+	}
+
+	
+	if(black_target_x < 0 || black_target_y < 0)
+	{
+		box_target_x = local_pos.pose.pose.position.x;
+		box_target_y = local_pos.pose.pose.position.y;
+		ROS_WARN("AUTO-------------------");
+		return false;
+	}
+	else
+	{
+		box_target_x = black_target_x;
+    	box_target_y = black_target_y;
+		ROS_WARN("BLACK_SQUARE------");
+		ROS_WARN("SQUARE_TARGET:black_dx:%f,black_dy:%f,black_target_x:%f,black_target_dy:%f",black_dx,black_dy,black_target_x,black_target_y);
+		ROS_WARN("SQUARE_TARGET:black_dx:%f,black_dy:%f,black_target_x:%f,black_target_dy:%f",black_dx,black_dy,black_target_x,black_target_y);
+		ROS_WARN("SQUARE_TARGET:black_dx:%f,black_dy:%f,black_target_x:%f,black_target_dy:%f",black_dx,black_dy,black_target_x,black_target_y);
+		return true;
+	}
 }
 
 bool mission_view(float x,float y,float z,float yaw);

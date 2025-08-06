@@ -180,7 +180,7 @@
     <param name="bspline/limit_acc" value="$(arg max_acc)" type="double"/>
     <param name="bspline/limit_ratio" value="1.1" type="double"/>
     <!-- ego巡航模式——mode 1 -->
-    <param name="optimization/dist0_1" value="0.6" type="double"/><!--巡航模式，更加安全0.6-->
+    <param name="optimization/dist0_1" value="0.575" type="double"/><!--巡航模式，更加安全0.575-->
     <!-- ego穿门模式——mode 2 -->
     <param name="optimization/dist0_2" value="0.25" type="double"/><!--穿门模式-->
   </node>

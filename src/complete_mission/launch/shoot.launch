@@ -1,4 +1,0 @@
-<launch>
-  <node pkg="complete_mission" type="shoot.py" name="shoot_control_subscriber" output="screen">
-  </node>
-</launch>

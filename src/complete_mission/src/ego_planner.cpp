@@ -40,6 +40,8 @@ float ring_back_x = 0 , ring_back_y = 0; // 环后点位（世界坐标系）
 float temp_x = 0 , temp_y = 0 ;
 
 float err_max = 0;
+float collision_err_max = 0;
+float catapult_err_max = 0;
 
 float fly_height = 0.75;
 
@@ -57,6 +59,7 @@ int ring_mission_flag = -1 ; //是否继续绕圈
 std::string qr_msg1 = "";
 std::string qr_msg2 = "";
 std::string qr_msg3 = "";
+
 
 
 void print_param()
@@ -86,6 +89,8 @@ void print_param()
   std::cout << "check_catapult_y : " << check_catapult_y << std::endl;
 
   std::cout << "err_max : " << err_max << std::endl;
+  std::cout << "collision_err_max : " << collision_err_max << std::endl;
+  std::cout << "catapult_err_max : " << catapult_err_max << std::endl;
   std::cout << "fly_height : " << fly_height << std::endl;
   std::cout << "qr_msg : " << qr_msg1.c_str() << "," << qr_msg2.c_str() << "," << qr_msg3.c_str() << std::endl;
 
@@ -156,6 +161,8 @@ int main(int argc, char **argv)
   ros::Publisher catapult_pub_box2 = nh.advertise<std_msgs::Empty>("servo/front_right/open", 1);
   ros::Publisher catapult_pub_box_large = nh.advertise<std_msgs::Empty>("servo/all/open", 1);
   ros::Subscriber yolo_ros_box_sub = nh.subscribe<yolov8_ros_msgs::BoundingBoxes>("/object_position", 1, yolo_ros_cb);
+  ros::Subscriber black_square_sub = nh.subscribe<geometry_msgs::Point>("/ocvd/target_center",1,black_square_cb);
+
 
   // 设置话题发布频率，需要大于2Hz，飞控连接有500ms的心跳包
   ros::Rate rate(20);
@@ -200,6 +207,8 @@ int main(int argc, char **argv)
   nh.param<float>("ring_back_y", ring_back_y, -2.0);
 
   nh.param<float>("err_max", err_max, 0);
+  nh.param<float>("collision_err_max",collision_err_max , 0);
+  nh.param<float>("catapult_err_max",catapult_err_max , 0);
   nh.param<float>("fly_height", fly_height, 0);
 
   nh.param<float>("check_catapult_x", check_catapult_x, 0);
@@ -226,6 +235,7 @@ int main(int argc, char **argv)
 
 
   print_param();
+
 
   
   int choice = 0;
@@ -332,7 +342,11 @@ int main(int argc, char **argv)
   float now_check_catapult_x = 0.0;
   float now_check_catapult_y = 0.0; 
 
+  float now_box_target_x = 0.0;
+  float now_box_target_y = 0.0;
+
   int tmp_mission = 1;
+  bool black_square_flag = false;
   std_msgs::Empty catapult_msg;
 
   while (ros::ok())
@@ -344,8 +358,7 @@ int main(int argc, char **argv)
     }
 
     printf("mission_num = %d\r\n", mission_num);
-    printf("1.%s,2.%s  havefound:%s\n",read_data[0].c_str(),read_data[1].c_str(),have_found.c_str());
-    printf("detect_code:%s,%s,%s\n",read_data[0].c_str(),read_data[1].c_str(),read_data[2].c_str());
+    
     
     switch (mission_num)
     {
@@ -374,7 +387,7 @@ int main(int argc, char **argv)
 
 
       case 110:
-      if(mission_pos_cruise(box1_x, box1_y, ALTITUDE, 0, err_max))
+      if(mission_pos_cruise(box1_x, box1_y, ALTITUDE, 0, collision_err_max))
       {
         if( spin_flag > 0) {
           if (lib_time_record_func(0.3, ros::Time::now())) {
@@ -395,7 +408,7 @@ int main(int argc, char **argv)
       break;
       
       case 111://左下
-        if(mission_pos_cruise(box2_x, box2_y, ALTITUDE, 0, err_max))
+        if(mission_pos_cruise(box2_x, box2_y, ALTITUDE, 0, collision_err_max))
         {
           if (lib_time_record_func(0.3, ros::Time::now())){
             mission_num = 112;
@@ -405,7 +418,7 @@ int main(int argc, char **argv)
         break;
 
       case 112://左上
-        if(mission_pos_cruise(box3_x, box3_y, ALTITUDE, 0, err_max))
+        if(mission_pos_cruise(box3_x, box3_y, ALTITUDE, 0, collision_err_max))
         {
           if (lib_time_record_func(0.3, ros::Time::now())){
             mission_num = 113;
@@ -415,7 +428,7 @@ int main(int argc, char **argv)
         break;
 
       case 113://右上
-        if(mission_pos_cruise(box4_x, box4_y, ALTITUDE, 0, err_max))
+        if(mission_pos_cruise(box4_x, box4_y, ALTITUDE, 0, collision_err_max))
         {
           if (lib_time_record_func(0.3, ros::Time::now())){
             mission_num = 114;
@@ -425,7 +438,7 @@ int main(int argc, char **argv)
         break;
 
       case 114://右下
-      if(mission_pos_cruise(box5_x, box5_y, ALTITUDE, 0, err_max))
+      if(mission_pos_cruise(box5_x, box5_y, ALTITUDE, 0, collision_err_max))
       {
         if (lib_time_record_func(0.3, ros::Time::now())){
           if(spin_flag == 0)
@@ -505,6 +518,8 @@ int main(int argc, char **argv)
               {
                 mission_num = 22;
                 box_flag = true;
+                now_box_target_x = target1_x;
+                now_box_target_y = target1_y;
                 last_request = ros::Time::now();
               }
               else
@@ -515,7 +530,7 @@ int main(int argc, char **argv)
             }
             else
             {
-              mission_num = 21;
+              mission_num = 21;    
               found = false; //重置识别标志位
               start_checking = true;
               last_request = ros::Time::now();
@@ -530,6 +545,8 @@ int main(int argc, char **argv)
               {
                 mission_num = 22;
                 box_flag = true;
+                now_box_target_x = target1_x;
+                now_box_target_y = target1_y;
                 last_request = ros::Time::now();
               }
               else
@@ -549,12 +566,30 @@ int main(int argc, char **argv)
         break;
 
       case 21:
-        if (mission_view(target1_x , target1_y , VIEW_ALTITUDE , 0 ))
+        // if(judge_box_target(target1_x,target1_y))
+        // {
+        //   black_square_flag = true;
+        // }
+        // else if(ros::Time::now() - last_request >= ros::Duration(2.0))
+        // {
+        //   black_square_flag = true;
+        // }
+        
+        if (mission_view(target1_x , target1_y , VIEW_ALTITUDE , 0 ) )
         {
           last_request = ros::Time::now();
+          black_square_flag = false;
           mission_num = 22;
           start_checking = false;
           box_flag = true;
+          now_box_target_x = target1_x;
+          now_box_target_y = target1_y;
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
           if(box_number == 0)
           {
             now_check_catapult_x = -check_catapult_x;
@@ -568,14 +603,17 @@ int main(int argc, char **argv)
         }
         else
         {
-          if(ros::Time::now() - last_request >= ros::Duration(3.0))
+          if(ros::Time::now() - last_request >= ros::Duration(5.0))
           { 
             start_checking = false;
             found = false; //重置识别标志位
             if(point1 && if_safe)
             {
               mission_num = 22;
+              
               box_flag = true;
+              now_box_target_x = target1_x;
+              now_box_target_y = target1_y;
             }
             else
             {
@@ -597,14 +635,14 @@ int main(int argc, char **argv)
         break;
 
       case 22:
-        if (mission_pos_cruise(target1_x + now_check_catapult_x , target1_y + now_check_catapult_y , 0.03 , 0 , err_max))
+        if (mission_pos_cruise(now_box_target_x + now_check_catapult_x , now_box_target_y + now_check_catapult_y , 0.03 , 0 , catapult_err_max))
         {
           if(box_flag)
           {
             box_number++;
             box_flag = false;
           }
-          if(lib_time_record_func(0.5, ros::Time::now()))
+          if(lib_time_record_func(1.0, ros::Time::now()))
           {
             mission_num = 23;
             last_request = ros::Time::now();
@@ -641,6 +679,8 @@ int main(int argc, char **argv)
               {
                 mission_num = 32;
                 box_flag = true;
+                now_box_target_x = target2_x;
+                now_box_target_y = target2_y;
                 last_request = ros::Time::now();
               }
               else
@@ -666,6 +706,8 @@ int main(int argc, char **argv)
               {
                 mission_num = 32;
                 box_flag = true;
+                now_box_target_x = target2_x;
+                now_box_target_y = target2_y;
                 last_request = ros::Time::now();
               }
               else
@@ -685,12 +727,29 @@ int main(int argc, char **argv)
         break;
 
       case 31:
+      //  if(judge_box_target(target2_x,target2_y))
+      //   {
+      //     black_square_flag = true;
+      //   }
+      //   else if(ros::Time::now() - last_request >= ros::Duration(2.0))
+      //   {
+      //     black_square_flag = true;
+      //   }
         if (mission_view(target2_x, target2_y, VIEW_ALTITUDE, 0))
         {
           mission_num = 32;
           last_request = ros::Time::now();
+          black_square_flag = false;
           start_checking = false;
           box_flag = true;
+          now_box_target_x = target2_x;
+          now_box_target_y = target2_y;
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
           if(box_number == 0)
           {
             now_check_catapult_x = -check_catapult_x;
@@ -712,6 +771,8 @@ int main(int argc, char **argv)
             {
               mission_num = 32;
               box_flag = true;
+              now_box_target_x = target2_x;
+              now_box_target_y = target2_y;
             }
             else
             {
@@ -733,7 +794,7 @@ int main(int argc, char **argv)
         break;
 
       case 32:
-        if (mission_pos_cruise(target2_x + now_check_catapult_x, target2_y + now_check_catapult_y , 0.03 , 0 , err_max))
+        if (mission_pos_cruise(now_box_target_x + now_check_catapult_x, now_box_target_y + now_check_catapult_y , 0.03 , 0 , catapult_err_max))
         {
           if(box_flag)
           {
@@ -748,7 +809,7 @@ int main(int argc, char **argv)
           {
             catapult_pub_box2.publish(catapult_msg);
           }
-          if(lib_time_record_func(0.5, ros::Time::now()))
+          if(lib_time_record_func(1.0, ros::Time::now()))
           {
             mission_num = 33;
             last_request = ros::Time::now();
@@ -795,7 +856,7 @@ int main(int argc, char **argv)
       case 4:
         if (mission_pos_cruise(target3_x , target3_y , ALTITUDE , 0 , err_max))
         {
-          if (lib_time_record_func(0.5, ros::Time::now()))
+          if (lib_time_record_func(1.5, ros::Time::now()))
           {
             if(if_point)
             {
@@ -803,6 +864,8 @@ int main(int argc, char **argv)
               {
                 mission_num = 42;
                 box_flag = true;
+                now_box_target_x = target3_x;
+                now_box_target_y = target3_y;
                 last_request = ros::Time::now();
               }
               else
@@ -828,6 +891,8 @@ int main(int argc, char **argv)
               {
                 mission_num = 42;
                 box_flag = true;
+                now_box_target_x = target3_x;
+                now_box_target_y = target3_y;
                 last_request = ros::Time::now();
               }
               else
@@ -847,12 +912,29 @@ int main(int argc, char **argv)
         break;
 
       case 41:
-        if (mission_view(target3_x , target3_y , VIEW_ALTITUDE , 0 ))
+        // if(judge_box_target(target3_x,target3_y))
+        // {
+        //   black_square_flag = true;
+        // }
+        // else if(ros::Time::now() - last_request >= ros::Duration(2.0))
+        // {
+        //   black_square_flag = true;
+        // }
+        if (mission_view(target3_x , target3_y , VIEW_ALTITUDE , 0 ) )
         {
           mission_num = 42;
           last_request = ros::Time::now();
+          black_square_flag = false;
           start_checking = false;
           box_flag = true;
+          now_box_target_x = target3_x;
+          now_box_target_y = target3_y;
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
           if(box_number == 0)
           {
             now_check_catapult_x = -check_catapult_x;
@@ -872,6 +954,8 @@ int main(int argc, char **argv)
             {
               mission_num = 42;
               box_flag = true;
+              now_box_target_x = target3_x;
+              now_box_target_y = target3_y;
             }
             else
             {
@@ -895,7 +979,7 @@ int main(int argc, char **argv)
         break;
 
       case 42:
-        if (mission_pos_cruise(target3_x + now_check_catapult_x, target3_y + now_check_catapult_y, 0.03 , 0, err_max))
+        if (mission_pos_cruise(now_box_target_x + now_check_catapult_x, now_box_target_y + now_check_catapult_y, 0.03 , 0, catapult_err_max))
         {
           if(box_flag)
           {
@@ -910,7 +994,7 @@ int main(int argc, char **argv)
           {
             catapult_pub_box2.publish(catapult_msg);
           }
-          if(lib_time_record_func(0.5, ros::Time::now()))
+          if(lib_time_record_func(1.0, ros::Time::now()))
           {
             mission_num = 43;
             last_request = ros::Time::now();
@@ -965,6 +1049,8 @@ int main(int argc, char **argv)
               {
                 mission_num = 52;
                 box_flag = true;
+                now_box_target_x = target4_x;
+                now_box_target_y = target4_y;
                 last_request = ros::Time::now();
               }
               else
@@ -990,6 +1076,8 @@ int main(int argc, char **argv)
               {
                 mission_num = 52;
                 box_flag = true;
+                now_box_target_x = target4_x;
+                now_box_target_y = target4_y;
                 last_request = ros::Time::now();
               }
               else
@@ -1000,7 +1088,7 @@ int main(int argc, char **argv)
             }
             else
             {
-              mission_num = 51;
+              mission_num = 51; 
               found = false; //重置识别标志位
               start_checking = true;
               last_request = ros::Time::now();
@@ -1009,12 +1097,29 @@ int main(int argc, char **argv)
         break;
 
       case 51:
+        // if(judge_box_target(target4_x,target4_y))
+        // {
+        //   black_square_flag = true;
+        // }
+        // else if(ros::Time::now() - last_request >= ros::Duration(2.0))
+        // {
+        //   black_square_flag = true;
+        // }
         if (mission_view(target4_x , target4_y , VIEW_ALTITUDE , 0 ))
         {
           mission_num = 52;
           last_request = ros::Time::now();
+          black_square_flag = false;
           start_checking = false;
           box_flag = true;
+          now_box_target_x = target4_x;
+          now_box_target_y = target4_y;
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
+          ROS_WARN("TARGET:dx0:%f,dy:%f,box_target_x:%f,box_target_y:%f,center_x:%f,center_y:%f",dx0,dy,box_target_x,box_target_y,center_x,center_y);
           if(box_number == 0)
           {
             now_check_catapult_x = -check_catapult_x;
@@ -1033,6 +1138,8 @@ int main(int argc, char **argv)
             if(point4 && if_safe)
             {
               box_flag = true;
+              now_box_target_x = target4_x;
+              now_box_target_y = target4_y;
               mission_num = 52;
             }
             else
@@ -1057,14 +1164,14 @@ int main(int argc, char **argv)
         break;
 
       case 52:
-        if (mission_pos_cruise(target4_x + now_check_catapult_x, target4_y + now_check_catapult_y, 0.03 , 0, err_max))
+        if (mission_pos_cruise(now_box_target_x + now_check_catapult_x, now_box_target_y + now_check_catapult_y, 0.03 , 0, catapult_err_max))
         {
           if(box_flag)
           {
             box_number++;
             box_flag = false;
-          }
-          if(lib_time_record_func(0.5, ros::Time::now()))
+          }   
+          if(lib_time_record_func(1.0, ros::Time::now()))
           {
             mission_num = 53;
             last_request = ros::Time::now();
@@ -1147,7 +1254,7 @@ int main(int argc, char **argv)
         break;
 
       case 72: //直接投放
-        if (mission_pos_cruise(target5_x + now_check_catapult_x, target5_y + now_check_catapult_y, 0.03 , 0, err_max))
+        if (mission_pos_cruise(target5_x + now_check_catapult_x, target5_y + now_check_catapult_y, 0.03 , 0, catapult_err_max))
         {
           if(lib_time_record_func(0.5,ros::Time::now()))
           {
@@ -1157,6 +1264,7 @@ int main(int argc, char **argv)
           catapult_pub_box_large.publish(catapult_msg);
         }
         break;
+        
 
       case 73:
         if(mission_pos_cruise(target5_x,target5_y,RING_HEIGHT,0,err_max))

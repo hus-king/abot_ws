@@ -1,71 +1,73 @@
-box1_x : 3.2
+box1_x : 3.20
 box1_y : 0.0
 
-box2_x : 3.2
-box2_y : 0.9
+box2_x : 3.20
+box2_y : 0.85
 
-box3_x : 5.25
-box3_y : 0.9
+box3_x : 5.2
+box3_y : 0.85
 
-box4_x : 5.25
-box4_y : -0.9
+box4_x : 5.2
+box4_y : -0.85
 
-box5_x : 3.2
-box5_y : -0.9
+box5_x : 3.20
+box5_y : -0.85
 
-spin_flag : 1
+spin_flag : 10
 
 #if_point: 1.position 0.view
 #if_safe: 0.view/unsafe 1.safe
 
-if_point: 0
+if_point: 1
 if_safe: 0
-point1: 0
+point1: 1
 point2: 0
-point3: 1
+point3: 0
 point4: 1
 
-target_qr_x : 1.85
+target_qr_x : 1.90
 target_qr_y : 0.0
 
-target1_x : 3.65
-target1_y : -1.73
+target1_x : 3.60
+target1_y : -1.63
 
-target2_x : 1.78
-target2_y : -1.64
+target2_x : 1.80
+target2_y : -1.63
 
-target3_x : 1.78
-target3_y : 1.57
+target3_x : 1.80
+target3_y : 1.60
 
-target4_x : 3.58
-target4_y : 1.63
+target4_x : 3.60
+target4_y : 1.60
 # the last ar
-target5_x : 6.05
-target5_y : 0.98
+target5_x : 6.02
+target5_y : 1.03
 
 target6_x : 0.0
 target6_y : 0.0
 
-park_left_x: -0.08
+park_left_x: 0.0
 park_left_y: 1.6
-park_right_x: -0.08
-park_right_y: -1.6
+park_right_x: -0.10
+park_right_y: -1.63
 
-target_ring_x : 6.05
-target_ring_y : 0.5
+target_ring_x : 6.00
+target_ring_y : 0.3
 
-ring_back_x : 6.05
+ring_back_x : 6.00
 ring_back_y : -2.4
 
 # fly height
 fly_height : 0.6
 err_max : 0.1
+catapult_err_max : 0.1
+collision_err_max : 0.2
 
 check_catapult_x : 0.025
 check_catapult_y : 0.015
 
-qr_msg1 : raccoon
-qr_msg2 : squirrel
+qr_msg1 : house
+qr_msg2 : mushroom
 qr_msg3 : right
 
 #ring params

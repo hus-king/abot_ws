@@ -12,7 +12,7 @@ tmux send-keys -t ros_session:0.1 'sleep 3; roslaunch abot_bringup location.laun
 
 # Pane 2: simple_camera_driver.launch
 tmux split-window -v -t ros_session:0.1
-tmux send-keys -t ros_session:0.2 'sleep 4; roslaunch tutorial_vision simple_camera_driver.launch' C-m
+tmux send-keys -t ros_session:0.2 'sleep 4; source /home/jetson/catkin_ws/devel/setup.bash;roslaunch tutorial_vision simple_camera_driver.launch' C-m
 
 # Pane 3: ros_predict.launch
 tmux split-window -v -t ros_session:0.2

@@ -32,7 +32,6 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_sensor_msgs
   circle_detector
   yolov8_ros
-
 )
 
 ## System dependencies are found with CMake's conventions
@@ -142,7 +141,6 @@ catkin_package(
 include_directories(
  include
   ${catkin_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIR}
 )
 
 ## Declare a C++ library
@@ -249,6 +247,9 @@ target_link_libraries(complete_mission ${catkin_LIBRARIES} lib)
 add_executable(ego_planner_collision src/ego_planner_collision.cpp)
 target_link_libraries(ego_planner_collision ${catkin_LIBRARIES} lib)
 
+add_executable(gjs src/gjs.cpp)
+target_link_libraries(gjs ${catkin_LIBRARIES} lib Eigen3::Eigen)
+
 
 add_executable(video_test_node src/video_test.cpp)
 target_link_libraries(video_test_node ${catkin_LIBRARIES} lib)
@@ -259,23 +260,10 @@ target_link_libraries(way_point ${catkin_LIBRARIES} lib)
 add_executable(laser_to_worldframe src/laser_to_worldframe.cpp)
 target_link_libraries(laser_to_worldframe ${catkin_LIBRARIES})
 
-add_executable(gjs src/gjs.cpp)
-target_link_libraries(gjs ${catkin_LIBRARIES} lib Eigen3::Eigen)
 
 add_executable(hover src/hover.cpp)
-target_link_libraries(hover ${catkin_LIBRARIES} lib Eigen3::Eigen)
+target_link_libraries(hover ${catkin_LIBRARIES} lib )
 
-add_executable(check_camera src/check_camera.cpp)
-target_link_libraries(check_camera ${catkin_LIBRARIES} lib Eigen3::Eigen)
-
-add_executable(check_tank src/check_tank.cpp)
-target_link_libraries(check_tank ${catkin_LIBRARIES} lib Eigen3::Eigen)
-
-add_executable(crossdoor src/crossdoor.cpp)
-target_link_libraries(crossdoor ${catkin_LIBRARIES} lib Eigen3::Eigen)
-
-add_executable(test_ego src/test_ego.cpp)
-target_link_libraries(test_ego ${catkin_LIBRARIES} lib Eigen3::Eigen)
 
 add_executable(IPC_test src/IPC_test.cpp)
 target_link_libraries(IPC_test ${catkin_LIBRARIES})

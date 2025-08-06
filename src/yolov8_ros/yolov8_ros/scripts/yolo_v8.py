@@ -24,10 +24,11 @@ class Yolo_Dect:
         self.camera_frame = rospy.get_param('~camera_frame', '')
         conf = rospy.get_param('~conf', '0.5')
         self.visualize = rospy.get_param('~visualize', 'True')
-        use_cpu = rospy.get_param('/use_cpu', 'false')
+
         # which device will be used
-        if (use_cpu):
-            self.device = 'cpu'
+        if (rospy.get_param('/use_cpu', 'false')):
+            #self.device = 'cpu'
+            self.model.to(0)
         else:
             self.device = 'cuda'
         self.bridge = CvBridge()
@@ -44,7 +45,7 @@ class Yolo_Dect:
         # image subscribe
         self.color_sub = rospy.Subscriber(image_topic, Image, self.image_callback,
                                           queue_size=1 ,buff_size=52428800)
-    #buff_size=52428800
+	#buff_size=52428800
         # output publishers
         self.position_pub = rospy.Publisher(
             pub_topic,  BoundingBoxes, queue_size=1)
@@ -81,18 +82,6 @@ class Yolo_Dect:
         fps = 1000.0/ results[0].speed['inference']
         cv2.putText(self.frame, f'FPS: {int(fps)}', (20,50), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2, cv2.LINE_AA)
 
-        # 打印检测到的类别信息
-        if len(results[0].boxes) > 0:
-            detected_classes = []
-            for result in results[0].boxes:
-                class_name = results[0].names[result.cls.item()]
-                confidence = result.conf.item()
-                detected_classes.append(f"{class_name}({confidence:.2f})")
-            
-            print(f"检测到的类别: {', '.join(detected_classes)}")
-        else:
-            print("未检测到任何目标")
-
         for result in results[0].boxes:
             boundingBox = BoundingBox()
             sum1 = np.int64(result.xyxy[0][0].item()/2) + np.int64(result.xyxy[0][2].item()/2)
@@ -125,23 +114,7 @@ class Yolo_Dect:
 
 
 def main():
-    import pkg_resources
-    import ultralytics
     rospy.init_node('yolov8_ros', anonymous=True)
-    # 输出ultralytics及其依赖包版本
-    print("ultralytics version:", ultralytics.__version__)
-    print("ultralytics dependencies:")
-    try:
-        dist = pkg_resources.get_distribution("ultralytics")
-        requires = dist.requires()
-        for req in requires:
-            try:
-                dep_dist = pkg_resources.get_distribution(req.project_name)
-                print(f"  {req.project_name}: {dep_dist.version}")
-            except Exception:
-                print(f"  {req.project_name}: not installed")
-    except Exception as e:
-        print("Could not get ultralytics dependencies:", e)
     yolo_dect = Yolo_Dect()
     rospy.spin()
 

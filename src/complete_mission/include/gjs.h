@@ -33,6 +33,7 @@ using namespace std;
 #define RING_HEIGHT 1.50
 #define TANK_ALTITUDE 2.0
 #define PUT_TANK_ALTITUDE 1.5
+float camera_offset_body_x = 0.0; // 相机安装偏移量，单位米
 
 mavros_msgs::PositionTarget setpoint_raw;
 ros::Publisher planner_goal_pub;
@@ -204,11 +205,10 @@ bool found_tank = false;      // 移动目标发现标志：累计检测到tank�
 std::string have_found;       // 最近检测到的目标类别名称
 float box_target_x;           // 目标在世界坐标系中的X坐标（米）
 float box_target_y;           // 目标在世界坐标系中的Y坐标（米）
-float fx = 474.00855717;      // 相机内参：X轴焦距（像素）
-float fy = 471.47044825;      // 相机内参：Y轴焦距（像素）
-float cx = 329.17278775;      // 相机内参：图像中心X坐标（像素）
-// float cy = 207.32440702;   // 原始相机内参：图像中心Y坐标（像素）
-float cy = 250.0;             // 修正后的相机内参：图像中心Y坐标（像素）
+float fx = 531.256452402983;
+float fy = 531.062457146004;
+float cx = 331.091420250469;
+float cy = 248.782850955389;
 
 std::string target_data[2] = {"car","bridge"};  // 目标检测类别数组，只检测车辆和桥梁两种目标
 
@@ -265,7 +265,7 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
 				float center_y = bounding_box.ymin;
 				
 				// 相机坐标系下的偏移量（相对于相机光心）
-				float camera_offset_x = (cy - center_y) * (local_pos.pose.pose.position.z + camera_height - init_position_z_take_off) / fy;
+				float camera_offset_x = (cy - center_y) * (local_pos.pose.pose.position.z + camera_height - init_position_z_take_off) / fy + camera_offset_body_x;
 				float camera_offset_y = (cx - center_x) * (local_pos.pose.pose.position.z + camera_height - init_position_z_take_off) / fx;
 				
 				// 考虑飞机yaw角度，将相机坐标系转换到世界坐标系
