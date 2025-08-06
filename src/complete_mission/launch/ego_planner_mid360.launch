@@ -26,8 +26,8 @@
     <!-- scan -->
     <arg name="scan_topic" value=""/>
     <!-- 最大速度及加速度 -->
-    <arg name="max_vel" value="0.5" />
-    <arg name="max_acc" value="0.5" />
+    <arg name="max_vel" value="0.6" />
+    <arg name="max_acc" value="0.6" />
     <!-- 规划的范围，一般设置为感知范围的1.5倍 -->
     <arg name="planning_horizon" value="4.5" /> 
     <!-- ？ -->

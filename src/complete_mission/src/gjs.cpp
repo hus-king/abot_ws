@@ -221,7 +221,7 @@ int main(int argc, char **argv)
      {
        if (ros::Time::now() - last_request > ros::Duration(1.0))
        {
-         mission_num = 71;
+         mission_num = 1;
          break;
        }
      }
@@ -602,7 +602,7 @@ int main(int argc, char **argv)
       case 61: // 飞高识别tank目标
         mission_pos_cruise(target5_x, target5_y, TANK_ALTITUDE, now_yaw, err_max);  // 悬停
         only_tank = true;  // 仅检测tank目标
-        if(local_pos.pose.pose.position.z > (TANK_ALTITUDE - 0.1)) 
+        if(local_pos.pose.pose.position.z > (TANK_ALTITUDE - 0.2)) 
         {
           start_checking = true;
         }
@@ -614,6 +614,12 @@ int main(int argc, char **argv)
           last_request = ros::Time::now();
           now_target_x = box_target_x;
           now_target_y = box_target_y;
+        }
+        else if(ros::Time::now() - last_request >= ros::Duration(1.0))
+        {
+          mission_num = 70;
+          last_request = ros::Time::now();
+          ROS_ERROR("未识别到tank目标,跳过任务");
         }
         break;
       case 62: // 悬停
