@@ -23,6 +23,8 @@
 #include <vector>
 #include <eigen3/Eigen/Dense>
 #include <deque>
+#include <image_transport/image_transport.h>
+#include <camera_processor/PointDepth.h>
 
 using namespace std;
 
@@ -1000,6 +1002,35 @@ bool target_through(float pos_x, float pos_y, float z, float yaw)
 		return true;
 	}
 	return false;
+}
+
+/************************************************************************
+函数功能14:depth_image
+//1、定义变量
+//2、函数声明
+//3、函数定义
+*************************************************************************/
+float depth_msg[480][640];
+bool depth_flag = false;
+void depth_image_cb(const camera_processor::PointDepthConstPtr &msg)
+{
+    if (!depth_flag) return;
+    
+    // 检查数据长度是否匹配（640*480）
+    if (msg->depths.size() != 640 * 480) {
+        ROS_WARN("Depth data size mismatch! Expected %d, got %zu", 
+                 640*480, msg->depths.size());
+        return;
+    }
+    
+    // 将一维数组转换为二维数组（y行x列）
+    for (int y = 0; y < 480; ++y) {
+        for (int x = 0; x < 640; ++x) {
+            // 原始数据存储格式：y*640 + x（与发布时一致）
+            size_t index = y * 640 + x;
+            depth_msg[y][x] = msg->depths[index];
+        }
+    }
 }
 
 /************************************************************************

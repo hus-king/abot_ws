@@ -21,6 +21,7 @@ float target6_x = 0, target6_y = 0;
 float target7_x = 0, target7_y = 0;
 float target8_x = 0, target8_y = 0;
 float target9_x = 0, target9_y = 0;
+float if_debug = 0; // 是否开启调试模式
 
 // 注意：只投放car，bridge，跳过pillbox，tank，tent
 float track_distance;           // 追踪距离
@@ -59,6 +60,7 @@ void print_param()
   std::cout << "catapult_shred: " << catapult_shred << std::endl;
   std::cout << "camera_height: " << camera_height << std::endl;
   std::cout << "camera_offset_body_x: " << camera_offset_body_x << std::endl;
+  std::cout << "if_debug: " << if_debug << std::endl;
 }
 
 
@@ -97,6 +99,8 @@ int main(int argc, char **argv)
   // ros::Publisher catapult_pub_box2 = nh.advertise<std_msgs::Empty>("servo/front_right/open", 1);
   // ros::Publisher catapult_pub_box_large = nh.advertise<std_msgs::Empty>("servo/all/open", 1);
   ros::Subscriber yolo_ros_box_sub = nh.subscribe<yolov8_ros_msgs::BoundingBoxes>("/object_position", 1, yolo_ros_cb);
+  
+  ros::Subscriber depth_sub = nh.subscribe<camera_processor::PointDepth>("/camera_processor/points", 1, depth_image_cb);
 
   // 设置话题发布频率，需要大于2Hz，飞控连接有500ms的心跳包
   ros::Rate rate(20);
@@ -137,6 +141,7 @@ int main(int argc, char **argv)
 
   nh.param<float>("camera_height", camera_height, 0);
   nh.param<float>("camera_offset_body_x", camera_offset_body_x, 0.0);
+  nh.param<float>("if_debug", if_debug, 0);
 
   target_array_x.push_back(target1_x);
   target_array_y.push_back(target1_y);
@@ -197,47 +202,54 @@ int main(int argc, char **argv)
   //lib_pwm_control(0, 0);
   //ctrl_pwm_client.call(lib_ctrl_pwm);
 
-   while (ros::ok())
-   {
-     if (current_state.mode != "OFFBOARD" && (ros::Time::now() - last_request > ros::Duration(3.0)))
-     {
-       if (set_mode_client.call(offb_set_mode) && offb_set_mode.response.mode_sent)
-       {
-         ROS_INFO("Offboard enabled");
-       }
-       last_request = ros::Time::now();
-     }
-     else
+  while (ros::ok())
+  {
+    if (current_state.mode != "OFFBOARD" && (ros::Time::now() - last_request > ros::Duration(3.0)))
     {
-       if (!current_state.armed && (ros::Time::now() - last_request > ros::Duration(3.0)))
-       {
-         if (arming_client.call(arm_cmd) && arm_cmd.response.success)
+      if(if_debug == 1)
+      {
+        if (set_mode_client.call(offb_set_mode) && offb_set_mode.response.mode_sent)
         {
-           ROS_INFO("Vehicle armed");
-         }
-         last_request = ros::Time::now();
-       }
+          ROS_INFO("Offboard enabled");
+        }
+      }
+      else
+      {
+        ROS_INFO("Waiting for OFFBOARD mode");
+      }
+      last_request = ros::Time::now();
     }
-     // 当无人机到达起飞点高度后，悬停3秒后进入任务模式，提高视觉效果
-     if (fabs(local_pos.pose.pose.position.z - ALTITUDE) < 0.1)
-     {
-       if (ros::Time::now() - last_request > ros::Duration(1.0))
-       {
-         mission_num = 1;
-         break;
-       }
-     }
-    
-     setpoint_raw.type_mask = /*1 + 2 + 4 + 8 + 16 + 32*/ +64 + 128 + 256 + 512 /*+ 1024 + 2048*/;
-     setpoint_raw.coordinate_frame = 1;
-     setpoint_raw.position.x = 0;
-     setpoint_raw.position.y = 0;
-     setpoint_raw.position.z = ALTITUDE;
-     setpoint_raw.yaw = 0;
-     mission_pos_cruise(0, 0, ALTITUDE, 0, err_max); 
-     mavros_setpoint_pos_pub.publish(setpoint_raw);
-     ros::spinOnce();
-     rate.sleep();
+    else
+    {
+      if (!current_state.armed && (ros::Time::now() - last_request > ros::Duration(3.0)))
+      {
+        if (arming_client.call(arm_cmd) && arm_cmd.response.success)
+        {
+          ROS_INFO("Vehicle armed");
+        }
+        last_request = ros::Time::now();
+      }
+    }
+    // 当无人机到达起飞点高度后，悬停3秒后进入任务模式，提高视觉效果
+    if (fabs(local_pos.pose.pose.position.z - ALTITUDE) < 0.1)
+    {
+      if (ros::Time::now() - last_request > ros::Duration(1.0))
+      {
+        mission_num = 1;
+        break;
+      }
+    }
+
+    setpoint_raw.type_mask = /*1 + 2 + 4 + 8 + 16 + 32*/ +64 + 128 + 256 + 512 /*+ 1024 + 2048*/;
+    setpoint_raw.coordinate_frame = 1;
+    setpoint_raw.position.x = 0;
+    setpoint_raw.position.y = 0;
+    setpoint_raw.position.z = ALTITUDE;
+    setpoint_raw.yaw = 0;
+    mission_pos_cruise(0, 0, ALTITUDE, 0, err_max); 
+    mavros_setpoint_pos_pub.publish(setpoint_raw);
+    ros::spinOnce();
+    rate.sleep();
   }
   
 

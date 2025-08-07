@@ -32,6 +32,8 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_sensor_msgs
   circle_detector
   yolov8_ros
+  image_transport
+  camera_processor
 )
 
 ## System dependencies are found with CMake's conventions
