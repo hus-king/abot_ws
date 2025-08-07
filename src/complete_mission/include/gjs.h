@@ -56,6 +56,9 @@ float camera_height;
 float square_yaw_cb;
 float now_target_x = 0;
 float now_target_y = 0;
+float door_step = 2;
+float door_shred = 1;
+
 
 bool car_found = false;
 bool bridge_found = false;
@@ -1005,15 +1008,17 @@ bool target_through(float pos_x, float pos_y, float z, float yaw)
 }
 
 /************************************************************************
-函数功能14:depth_image
+函数功能:depth_image
 //1、定义变量
 //2、函数声明
 //3、函数定义
 *************************************************************************/
-float depth_msg[480][640];
+float horizon_depth[640];
 bool depth_flag = false;
 void depth_image_cb(const camera_processor::PointDepthConstPtr &msg)
 {
+	ROS_INFO("start depth image cb");
+	int depth_error = 10;
     if (!depth_flag) return;
     
     // 检查数据长度是否匹配（640*480）
@@ -1022,15 +1027,110 @@ void depth_image_cb(const camera_processor::PointDepthConstPtr &msg)
                  640*480, msg->depths.size());
         return;
     }
+	float sum = 0;
+	float num = 0;
     
     // 将一维数组转换为二维数组（y行x列）
-    for (int y = 0; y < 480; ++y) {
-        for (int x = 0; x < 640; ++x) {
+    for (int x = 0; x < 640; ++x) {
+		sum = 0;
+		num = 0;
+        for (int y = 220; y < 260; ++y){
             // 原始数据存储格式：y*640 + x（与发布时一致）
             size_t index = y * 640 + x;
-            depth_msg[y][x] = msg->depths[index];
+			if(msg->depths[index]==0) continue;
+			sum += msg->depths[index];
+			num ++;
         }
+		if(num == 0) horizon_depth[x] = depth_error++;
+		else{
+			horizon_depth[x] = sum / num;
+		}
+		ROS_INFO("depth[%d] = %.2f", x, horizon_depth[x]);
     }
+}
+
+
+
+//1:left 2:right
+int judge_door()
+{
+	float last_average = 0;
+	float now_average = 0;
+	float door_sum = 0;
+	bool door_flag = true;
+	for(int i = door_step ; i < 640-door_step ; i += door_step + 1)
+	{
+		door_sum = 0;
+		for(int j = i - door_step; j <= i + door_step; j++)
+		{
+			if(horizon_depth[j] == 10) 
+			{
+				door_flag = false;
+				break;
+			}
+			door_sum += horizon_depth[j];
+		}
+		if(!door_flag)
+		{
+			door_flag = true;
+			continue;
+		}
+		now_average = door_sum/(2*door_step + 1);
+		if(now_average <= 0) continue;
+		cout << i <<": now_average = " << now_average << "last_average = " << last_average << endl;
+		if(last_average!=0 && abs(last_average - now_average) >= door_shred)
+		{
+			if(last_average - now_average >= 0) return 1;
+			else if(last_average - now_average < 0) return 2;
+		}
+		last_average = now_average;
+	}
+	return 0;
+}
+struct {
+	int left;
+	int right;
+	int width;
+	float distance;
+} line[640];
+
+float line_shred = 0.02;
+int line_key = 0; //找到的线段数量
+
+void find_line(){
+	ROS_INFO("开始寻找线");
+	for(int i = 0; i < 640; i++){
+		line[i].left = -1;
+		line[i].right = -1;
+		line[i].width = 0;
+	}
+	line[0].left = 10;
+	line_key = 0; //找到的线段数量
+	for(int i = 11; i < 630; i++){
+		if( abs(horizon_depth[i] - horizon_depth[line[line_key].left]) < line_shred){
+			line[line_key].right = i;
+			line[line_key].width++;
+		}else{
+			line[line_key].right = i - 1;
+			line_key++;
+			line[line_key].left = i;
+		}
+	}
+}
+void print_line(){
+	int valid_line_count = 0;
+	for(int i = 0; i <= line_key; i++){
+		if(line[i].width > 20){
+			valid_line_count++;
+		}
+	}
+	ROS_INFO("找到的线段数量: %d, 长度大于20的线段数量: %d", line_key, valid_line_count);
+	for(int i = 0; i <= line_key; i++){
+		if(line[i].width > 20){
+			line[i].distance = (horizon_depth[line[i].left] + horizon_depth[line[i].right]) / 2;
+			ROS_INFO("Line %d: left = %d, right = %d, width = %d, distance = %.2f", i, line[i].left, line[i].right, line[i].width, line[i].distance);
+		}
+	}
 }
 
 /************************************************************************

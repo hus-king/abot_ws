@@ -61,6 +61,8 @@ void print_param()
   std::cout << "camera_height: " << camera_height << std::endl;
   std::cout << "camera_offset_body_x: " << camera_offset_body_x << std::endl;
   std::cout << "if_debug: " << if_debug << std::endl;
+  std::cout << "door_step: " << door_step << std::endl;
+  std::cout << "door_shred: " << door_shred << std::endl;
 }
 
 
@@ -95,12 +97,14 @@ int main(int argc, char **argv)
   ros::ServiceClient ctrl_pwm_client = nh.serviceClient<mavros_msgs::CommandLong>("mavros/cmd/command");
 
   // 投射器相关发布者和订阅者
-  // ros::Publisher catapult_pub_box1 = nh.advertise<std_msgs::Empty>("servo/front_left/open", 1);
-  // ros::Publisher catapult_pub_box2 = nh.advertise<std_msgs::Empty>("servo/front_right/open", 1);
-  // ros::Publisher catapult_pub_box_large = nh.advertise<std_msgs::Empty>("servo/all/open", 1);
+  ros::Publisher catapult_pub_box1 = nh.advertise<std_msgs::Empty>("servo/front_left/open", 1);
+  ros::Publisher catapult_pub_box2 = nh.advertise<std_msgs::Empty>("servo/front_right/open", 1);
+  ros::Publisher catapult_pub_box3 = nh.advertise<std_msgs::Empty>("servo/back_right/open", 1);
+  
+
   ros::Subscriber yolo_ros_box_sub = nh.subscribe<yolov8_ros_msgs::BoundingBoxes>("/object_position", 1, yolo_ros_cb);
   
-  ros::Subscriber depth_sub = nh.subscribe<camera_processor::PointDepth>("/camera_processor/points", 1, depth_image_cb);
+  ros::Subscriber depth_sub = nh.subscribe<camera_processor::PointDepth>("/camera_processor/depth/points", 1, depth_image_cb);
 
   // 设置话题发布频率，需要大于2Hz，飞控连接有500ms的心跳包
   ros::Rate rate(20);
@@ -142,6 +146,9 @@ int main(int argc, char **argv)
   nh.param<float>("camera_height", camera_height, 0);
   nh.param<float>("camera_offset_body_x", camera_offset_body_x, 0.0);
   nh.param<float>("if_debug", if_debug, 0);
+
+  nh.param<float>("door_step", door_step, 2);
+  nh.param<float>("door_shred", door_shred, 1);
 
   target_array_x.push_back(target1_x);
   target_array_y.push_back(target1_y);
@@ -583,11 +590,11 @@ int main(int argc, char **argv)
           
           if(box_number == 1)
           {
-            // catapult_pub_box1.publish(catapult_msg);
+            catapult_pub_box1.publish(catapult_msg);
           }
           else if(box_number == 2)
           {
-            // catapult_pub_box2.publish(catapult_msg);
+            catapult_pub_box2.publish(catapult_msg);
           }
         }
         break;
@@ -652,6 +659,7 @@ int main(int argc, char **argv)
             only_tank = false;  // 重置仅检测tank目标
             start_checking = false; // 停止识别
           }
+          catapult_pub_box3.publish(catapult_msg);
         }
         break;
 
@@ -841,7 +849,7 @@ int main(int argc, char **argv)
       
       case 10: // 在起飞点降落
         arm_cmd.request.value = false;
-        if(mission_pos_cruise(0, 0, 0.02, 0, err_max))
+        if(mission_pos_cruise(0, 0, - 0.05, 0, err_max))
         {
           if (lib_time_record_func(5.0, ros::Time::now()))
           {

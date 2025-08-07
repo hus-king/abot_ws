@@ -252,6 +252,12 @@ target_link_libraries(ego_planner_collision ${catkin_LIBRARIES} lib)
 add_executable(gjs src/gjs.cpp)
 target_link_libraries(gjs ${catkin_LIBRARIES} lib Eigen3::Eigen)
 
+add_executable(depth_door src/depth_door.cpp)
+target_link_libraries(depth_door ${catkin_LIBRARIES} lib Eigen3::Eigen)
+
+add_executable(check_catpult src/check_catpult.cpp)
+target_link_libraries(check_catpult ${catkin_LIBRARIES} lib Eigen3::Eigen)
+
 
 add_executable(video_test_node src/video_test.cpp)
 target_link_libraries(video_test_node ${catkin_LIBRARIES} lib)

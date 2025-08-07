@@ -100,3 +100,5 @@ err_max_ego : 0.25
 camera_offset_body_x : 0.085
 if_debug : 1
 # 1为自动切offboard，0为手动切offboard 
+door_step : 0
+door_shred : 0.5
