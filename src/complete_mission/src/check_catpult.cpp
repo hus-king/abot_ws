@@ -346,7 +346,7 @@ int main(int argc, char **argv)
         {
           if(lib_time_record_func(0.5, ros::Time::now()))
           {
-            mission_num = 10;
+            mission_num = 4;
             now_yaw = yaw;
             last_request = ros::Time::now();
           } 
