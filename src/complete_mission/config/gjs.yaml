@@ -75,8 +75,8 @@ ring_back_y : -2.4
 fly_height : 0.6
 err_max : 0.15
 
-check_catapult_x : 0.165
-check_catapult_y : 0.145
+check_catapult_x : 0.17
+check_catapult_y : 0.14
 track_distance : 0.2
 
 qr_msg1 : raccoon
@@ -94,11 +94,12 @@ sigma_a : 0.1
 tank_time : 0
 tank_shred : 0
 
-camera_height : 0.062
+camera_height : 0.05
 
 err_max_ego : 0.25
-camera_offset_body_x : 0.085
+camera_offset_body_x : 0.0
 if_debug : 1
 # 1为自动切offboard，0为手动切offboard 
 door_step : 0
 door_shred : 0.5
+line_shred : 0.1

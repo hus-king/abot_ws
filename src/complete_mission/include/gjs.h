@@ -41,6 +41,7 @@ mavros_msgs::PositionTarget setpoint_raw;
 ros::Publisher planner_goal_pub;
 ros::Publisher finish_ego_pub;
 ros::Publisher ego_planner_mode_pub;
+ros::Publisher door_points_pub;
 std_msgs::Bool finish_ego_flag;
 std_msgs::Int32 ego_planner_mode;
 int now_mode = -1 ;
@@ -1015,6 +1016,9 @@ bool target_through(float pos_x, float pos_y, float z, float yaw)
 *************************************************************************/
 float horizon_depth[640];
 bool depth_flag = false;
+int left_door_point = -1; // 左侧门的起始点
+int right_door_point = -1; // 右侧门的起始点
+float door_distance = 0; // 门的距离
 void depth_image_cb(const camera_processor::PointDepthConstPtr &msg)
 {
 	ROS_INFO("start depth image cb");
@@ -1045,7 +1049,7 @@ void depth_image_cb(const camera_processor::PointDepthConstPtr &msg)
 		else{
 			horizon_depth[x] = sum / num;
 		}
-		ROS_INFO("depth[%d] = %.2f", x, horizon_depth[x]);
+		// ROS_INFO("depth[%d] = %.2f", x, horizon_depth[x]);
     }
 }
 
@@ -1094,7 +1098,7 @@ struct {
 	float distance;
 } line[640];
 
-float line_shred = 0.02;
+float line_shred = 0.1;//线段分割的阈值
 int line_key = 0; //找到的线段数量
 
 void find_line(){
@@ -1106,7 +1110,7 @@ void find_line(){
 	}
 	line[0].left = 10;
 	line_key = 0; //找到的线段数量
-	for(int i = 11; i < 630; i++){
+	for(int i = 0; i < 640; i++){
 		if( abs(horizon_depth[i] - horizon_depth[line[line_key].left]) < line_shred){
 			line[line_key].right = i;
 			line[line_key].width++;
@@ -1130,6 +1134,135 @@ void print_line(){
 			line[i].distance = (horizon_depth[line[i].left] + horizon_depth[line[i].right]) / 2;
 			ROS_INFO("Line %d: left = %d, right = %d, width = %d, distance = %.2f", i, line[i].left, line[i].right, line[i].width, line[i].distance);
 		}
+	}
+}
+void find_door(){
+	ROS_INFO("开始寻找门");
+	//分两种情况，第一是只有一侧有挡板，第二是两侧均有挡板
+	int first_line = -1, second_line = -1;
+	
+	// 找到最长和第二长的线段
+	for(int i = 0; i <= line_key; i++){
+		if(line[i].width > 20){ // 只考虑有效的线段
+			if(first_line == -1 || line[i].width > line[first_line].width){
+				// 更新第二长的线段
+				second_line = first_line;
+				// 更新最长的线段
+				first_line = i;
+			}
+			else if(second_line == -1 || line[i].width > line[second_line].width){
+				// 更新第二长的线段
+				second_line = i;
+			}
+		}
+	}
+	
+	if(first_line != -1 && second_line != -1){
+		if(line[first_line].left > line[second_line].left){
+			int temp = first_line;
+			first_line = second_line;
+			second_line = temp;
+		}
+	}//swap
+	
+	// 输出结果
+	if(first_line != -1){
+		ROS_INFO("第一条线段: %d, 宽度: %d, left: %d", first_line, line[first_line].width, line[first_line].left);
+		if(second_line != -1){
+			ROS_INFO("第二条线段: %d, 宽度: %d, left: %d", second_line, line[second_line].width, line[second_line].left);
+		} else {
+			ROS_INFO("未找到右侧线段");
+		}
+	} else {
+		ROS_INFO("未找到有效线段");
+	}
+	left_door_point = -1; // 左侧门的起始点
+	right_door_point = -1; // 右侧门的起始点
+	door_distance = -1; // 门的距离
+	//分析线段情况
+	if(first_line != -1 && second_line != -1){
+		ROS_INFO("两侧均有挡板，左侧线段: %d, 右侧线段: %d", first_line, second_line);
+		if(abs(line[first_line].distance - line[second_line].distance) < 0.3){
+			ROS_INFO("两侧线段距离相近，是平行挡板");
+			left_door_point = line[first_line].right;
+			right_door_point = line[second_line].left;
+			door_distance = (line[first_line].distance + line[second_line].distance) / 2;
+		}
+		else{
+			ROS_INFO("两侧线段距离相差较大，是非平行挡板");
+			int closer_line, farther_line;
+			if(line[first_line].distance < line[second_line].distance){
+				closer_line = first_line;
+				farther_line = second_line;
+			} else {
+				closer_line = second_line;
+				farther_line = first_line;
+			}
+			//判断closer是在左边还是在右边
+			if((line[closer_line].right + line[closer_line].left) / 2 > 320){
+				ROS_INFO("单侧挡板在右侧，线段: %d", closer_line);
+				right_door_point = line[closer_line].left;
+				door_distance = line[closer_line].distance;
+				left_door_point = 0;
+				for(int i = 0;i < line[farther_line].left; i++){
+					if(abs(horizon_depth[i] - line[closer_line].distance) < 0.1){
+						left_door_point = i;
+						break;
+					}
+				}
+			}
+			else{
+				ROS_INFO("单侧挡板在左侧，线段: %d", closer_line);
+				left_door_point = line[closer_line].right;
+				door_distance = line[closer_line].distance;
+				right_door_point = 639;
+				for(int i = 639; i > line[farther_line].right; i--){
+					if(abs(horizon_depth[i] - line[closer_line].distance) < 0.1){
+						right_door_point = i;
+						break;
+					}
+				}
+			}
+		}
+	}
+	else if(first_line != -1){
+		ROS_INFO("只有一个挡板，线段: %d", first_line);
+		// 判断挡板在左侧还是右侧
+		if((line[first_line].right + line[first_line].left) / 2 > 320){
+			ROS_INFO("挡板在右侧");
+			right_door_point = line[first_line].left;
+			door_distance = line[first_line].distance;
+			left_door_point = 0;
+			for(int i = 0; i < line[first_line].left; i++){
+				if(abs(horizon_depth[i] - line[first_line].distance) < 0.1){
+					left_door_point = i;
+					break;
+				}
+			}
+		}
+		else{
+			ROS_INFO("挡板在左侧");
+			left_door_point = line[first_line].right;
+			door_distance = line[first_line].distance;
+			right_door_point = 639;
+			for(int i = 639; i > line[first_line].right; i--){
+				if(abs(horizon_depth[i] - line[first_line].distance) < 0.1){
+					right_door_point = i;
+					break;
+				}
+			}
+		}
+	}
+	if(left_door_point != -1 && right_door_point != -1){
+		ROS_INFO("左侧门起始点: %d, 右侧门起始点: %d", left_door_point, right_door_point);
+		ROS_INFO("门的距离: %.2f", door_distance);
+		// 发布门点信息
+		geometry_msgs::Point door_points_msg;
+		door_points_msg.x = left_door_point;
+		door_points_msg.y = right_door_point;
+		door_points_msg.z = (left_door_point + right_door_point) / 2.0; // 门的中心点
+		door_points_pub.publish(door_points_msg);
+		ROS_INFO("已发布门点信息: left=%d, right=%d, center=%.1f", left_door_point, right_door_point, door_points_msg.z);
 	}
 }
 
