@@ -6,7 +6,6 @@ void print_param()
 {
   std::cout << "door_step: " << door_step << std::endl;
   std::cout << "door_shred: " << door_shred << std::endl;
-  std::cout << "line_shred: " << line_shred << std::endl;
 }
 
 
@@ -52,7 +51,6 @@ int main(int argc, char **argv)
 
   nh.param<float>("door_step", door_step, 2);
   nh.param<float>("door_shred", door_shred, 1);
-  nh.param<float>("line_shred", line_shred, 0.1);
 
 
   print_param();
