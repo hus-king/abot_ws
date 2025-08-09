@@ -255,6 +255,9 @@ target_link_libraries(gjs ${catkin_LIBRARIES} lib Eigen3::Eigen)
 add_executable(depth_door src/depth_door.cpp)
 target_link_libraries(depth_door ${catkin_LIBRARIES} lib Eigen3::Eigen)
 
+add_executable(cross_door src/cross_door.cpp)
+target_link_libraries(cross_door ${catkin_LIBRARIES} lib Eigen3::Eigen)
+
 add_executable(check_catpult src/check_catpult.cpp)
 target_link_libraries(check_catpult ${catkin_LIBRARIES} lib Eigen3::Eigen)
 

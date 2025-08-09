@@ -19,6 +19,10 @@ tmux send-keys -t ros_session:0.2 'sleep 4;source ~/catkin_ws/devel/setup.bash; 
 tmux split-window -h -t ros_session:0.2
 tmux send-keys -t ros_session:0.3 'sleep 4;source ~/ros_libraries_ws/devel/setup.bash; roslaunch realsense2_camera rs_camera.launch' C-m
 
+# Pane 4: rs_camera.launch
+tmux split-window -h -t ros_session:0.3
+tmux send-keys -t ros_session:0.4 'sleep 4;source ~/xxuz_ws/devel/setup.bash; roslaunch door_detector door_detector.launch' C-m
+
 
 tmux select-layout -t ros_session:0 tiled
 

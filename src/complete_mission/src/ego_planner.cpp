@@ -163,11 +163,20 @@ int main(int argc, char **argv)
   ros::Subscriber yolo_ros_box_sub = nh.subscribe<yolov8_ros_msgs::BoundingBoxes>("/object_position", 1, yolo_ros_cb);
   ros::Subscriber black_square_sub = nh.subscribe<geometry_msgs::Point>("/ocvd/target_center",1,black_square_cb);
 
-
+  ros::Subscriber door_lidar_sub = nh.subscribe<geometry_msgs::PointStamped>("/door_center",1,door_lidar_cb);
   // 设置话题发布频率，需要大于2Hz，飞控连接有500ms的心跳包
   ros::Rate rate(20);
 
   //  参数读取
+
+  start_check_door_flag = true;
+  while(ros::ok())
+  {
+    if(finish_check_door_flag)
+    ROS_ERROR("x:%f,y:%f,z:%f",door_x,door_y,door_z);
+    ros::spinOnce();
+    rate.sleep();
+  }
   
   nh.param<float>("box1_x", box1_x, 0);
   nh.param<float>("box1_y", box1_y, 0);

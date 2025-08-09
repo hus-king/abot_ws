@@ -45,6 +45,8 @@ float calculate(float x1,float y1,float x2,float y2)
 	return abs(sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2)));
 }
 
+
+
 /************************************************************************
 函数功能1：无人机状态回调函数
 //1、定义变量
@@ -1011,3 +1013,70 @@ bool pub_ego_goal(float x, float y, float z, float err_max, int first_target)
 	}
 	return false;
 }
+
+
+/************************************************************************
+函数功能1：gjs_lidar
+//1、定义变量
+//2、函数声明
+//3、函数定义
+*************************************************************************/
+geometry_msgs::PointStamped door_pos;
+float sum_door_x = 0;
+float sum_door_y = 0;
+float sum_door_z = 0;
+
+float avg_door_x = 0;
+float avg_door_y = 0;
+float avg_door_z = 0;
+
+float door_x = 0;
+float door_y = 0;
+float door_z = 0;
+int check_num = 0;
+int door_check_num = 10;
+uint32_t door_seq = 0;
+float door_thred = 0.2;
+bool start_check_door_flag = false;
+bool finish_check_door_flag = false;
+
+void door_lidar_cb(const geometry_msgs::PointStamped::ConstPtr &msg)
+{
+	if(!start_check_door_flag) return;
+	door_pos = *msg;
+
+	if(door_pos.header.seq == door_seq) return;
+
+	door_seq = door_pos.header.seq;
+	sum_door_x += door_pos.point.x;
+	sum_door_y += door_pos.point.y;
+	sum_door_z += door_pos.point.z;
+	check_num++;
+	avg_door_x = sum_door_x / check_num;
+	avg_door_y = sum_door_y / check_num;
+	avg_door_z = sum_door_z / check_num;
+	if(abs(door_pos.point.x - avg_door_x) > door_thred || abs(door_pos.point.y - avg_door_y) > door_thred)
+	{
+		check_num = 0;
+		sum_door_x = 0;
+		sum_door_y = 0;
+		sum_door_z = 0;
+		avg_door_x = 0;
+		avg_door_y = 0;
+		avg_door_z = 0;
+		return;
+	}
+
+	if(check_num >= door_check_num)
+	{
+		door_x = avg_door_x;
+		door_y = avg_door_y;
+		door_z = avg_door_z;
+		finish_check_door_flag = true;
+		start_check_door_flag = false;
+	}
+	ROS_INFO("door_pos_x:%f,door_pos_y:%f,door_pos_z:%f",door_pos.point.x,door_pos.point.y,door_pos.point.z);
+}
+
+
+
