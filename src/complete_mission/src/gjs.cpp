@@ -582,7 +582,7 @@ int main(int argc, char **argv)
           now_check_catapult_y = check_catapult_y * cos_yaw;
         }
         
-        if(mission_pos_cruise(now_target_x + now_check_catapult_x, now_target_y + now_check_catapult_y, 0.05, now_yaw, err_max))
+        if(mission_pos_cruise(now_target_x + now_check_catapult_x, now_target_y + now_check_catapult_y, 0.15, now_yaw, err_max))
         {
           // 当前位置修正后投放
           if (lib_time_record_func(2.0, ros::Time::now()))
@@ -656,7 +656,7 @@ int main(int argc, char **argv)
           now_target_x = box_target_x;
           now_target_y = box_target_y;
         }
-        else if(ros::Time::now() - last_request >= ros::Duration(1.0))
+        else if(ros::Time::now() - last_request >= ros::Duration(10.0))
         {
           mission_num = 10;
           last_request = ros::Time::now();

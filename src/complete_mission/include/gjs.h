@@ -30,7 +30,7 @@ using namespace std;
 
 
 #define ALTITUDE 0.8
-#define VIEW_ALTITUDE 2.0
+#define VIEW_ALTITUDE 1.7
 #define QR_ALTITUDE 0.40
 #define RING_HEIGHT 1.50
 #define TANK_ALTITUDE 2.0

@@ -24,7 +24,7 @@
 using namespace std;
 
 
-#define ALTITUDE 1.0
+#define ALTITUDE 1.5
 #define VIEW_ALTITUDE 1.0
 #define QR_ALTITUDE 0.40
 #define RING_HEIGHT 1.50
