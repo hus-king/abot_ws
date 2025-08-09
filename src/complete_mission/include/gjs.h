@@ -59,6 +59,7 @@ float now_target_x = 0;
 float now_target_y = 0;
 float door_step = 2;
 float door_shred = 1;
+int door_adjust_range = 70;
 
 
 bool car_found = false;
@@ -1250,9 +1251,9 @@ void find_door() {
 
             // 计算本次方向
             double center = (left_door_point + right_door_point) / 2.0;
-            if (center < 250) {
+            if (center < (320 - door_adjust_range)) {
                 current_direction = 1; // 左
-            } else if (center > 390) {
+            } else if (center > (320 + door_adjust_range)) {
                 current_direction = 2; // 右
             } else {
                 current_direction = 0; // 中

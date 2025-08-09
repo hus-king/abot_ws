@@ -45,7 +45,7 @@ target5_x : 4.63
 target5_y : -1.00
 
 target6_x : 6.60
-target6_y : 2.2
+target6_y : 2.1
 
 target7_x : 6.60
 target7_y : -2.32
@@ -53,12 +53,9 @@ target7_y : -2.32
 # target7_x : 6.40
 # target7_y : -2.40
 
-# target8_x : 5.00
-# target8_y : 2.1
+target8_x : 5.00
+target8_y : 2.1
 
-
-target8_x : 0
-target8_y : 0
 
 park_left_x: -0.08
 park_left_y: 1.6
@@ -103,3 +100,5 @@ if_debug : 1
 door_step : 0
 door_shred : 0.5
 line_shred : 0.1
+
+door_adjust_range : 80
