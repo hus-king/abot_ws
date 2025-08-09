@@ -97,8 +97,9 @@ int main(int argc, char **argv)
   ros::ServiceClient ctrl_pwm_client = nh.serviceClient<mavros_msgs::CommandLong>("mavros/cmd/command");
 
   // 投射器相关发布者和订阅者
-  // ros::Publisher catapult_pub_box1 = nh.advertise<std_msgs::Empty>("servo/front_left/open", 1);
-  // ros::Publisher catapult_pub_box2 = nh.advertise<std_msgs::Empty>("servo/front_right/open", 1);
+  ros::Publisher catapult_pub_box1 = nh.advertise<std_msgs::Empty>("servo/back_right/open", 1);
+  ros::Publisher catapult_pub_box2 = nh.advertise<std_msgs::Empty>("servo/back_left/open", 1);
+  ros::Publisher catapult_pub_box3 = nh.advertise<std_msgs::Empty>("servo/front_right/open", 1);
   // ros::Publisher catapult_pub_box_large = nh.advertise<std_msgs::Empty>("servo/all/open", 1);
   ros::Publisher catapult_pub_box_large = nh.advertise<std_msgs::Empty>("servo/all/open", 1);
   
@@ -337,16 +338,40 @@ int main(int argc, char **argv)
             mission_num = 4;
             last_request = ros::Time::now();
           }
-          catapult_pub_box_large.publish(catapult_msg);
+          catapult_pub_box1.publish(catapult_msg);
         }
         break;
 
       case 4:
+        if (mission_pos_cruise(1, 0, ALTITUDE, 0, err_max))
+        {
+          if(lib_time_record_func(2.0,ros::Time::now()))
+          {
+            mission_num = 5;
+            last_request = ros::Time::now();
+          }
+          catapult_pub_box2.publish(catapult_msg);
+        }
+        break;
+
+      case 5:
+        if (mission_pos_cruise(1, 0, ALTITUDE, 0, err_max))
+        {
+          if(lib_time_record_func(2.0,ros::Time::now()))
+          {
+            mission_num = 6;
+            last_request = ros::Time::now();
+          }
+          catapult_pub_box_large.publish(catapult_msg);
+        }
+        break;
+
+      case 6:
         if (mission_pos_cruise(0, 0, ALTITUDE, 0, err_max))
         {
           if(lib_time_record_func(0.5, ros::Time::now()))
           {
-            mission_num = 4;
+            mission_num = 6;
             now_yaw = yaw;
             last_request = ros::Time::now();
           } 

@@ -102,3 +102,5 @@ door_shred : 0.5
 line_shred : 0.1
 
 door_adjust_range : 80
+
+if_realsence : 0
