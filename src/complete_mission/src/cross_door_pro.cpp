@@ -324,8 +324,6 @@ int main(int argc, char **argv)
         }
         break;
 
-        break;
-
       case 701:
         mission_pos_cruise(target6_x,target6_y ,ALTITUDE,-1.57,err_max);
         if(finish_check_door_flag)
@@ -360,7 +358,7 @@ int main(int argc, char **argv)
         break;
 
         case 704:
-        if(mission_pos_cruise(door_x,door_y - 0.5 ,ALTITUDE,-1.57,err_max))
+        if(mission_pos_cruise(door_x,door_y - 0.6 ,ALTITUDE,-1.57,err_max))
         {
           if(lib_time_record_func(0.5, ros::Time::now()))
           {
@@ -373,7 +371,7 @@ int main(int argc, char **argv)
             {
               start_check_door_flag = true;
               mission_num = 701;
-              target6_y = door_y - 0.5;
+              target6_y = door_y - 0.6;
               last_request = ros::Time::now();
             }
           }

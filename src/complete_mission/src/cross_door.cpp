@@ -83,7 +83,6 @@ int main(int argc, char **argv)
 
   nh.param<float>("if_debug", if_debug, 0);
   nh.param<float>("line_shred", line_shred, 0.1);
-
   nh.param<int>("door_adjust_range", door_adjust_range, 70);
 
 
