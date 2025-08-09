@@ -8,6 +8,7 @@ int box_number = 0;         // 投放箱子数量
 float now_yaw = 0;          // 当前偏航角
 float adjust_x = 0;          // 调整X坐标
 float adjust_y = 0;          // 调整Y坐标
+int if_realsence = 0; // 是否使用RealSense相机穿门
 
 // 目标点坐标数组
 vector<float> target_array_x;
@@ -646,7 +647,7 @@ int main(int argc, char **argv)
           now_target_x = box_target_x;
           now_target_y = box_target_y;
         }
-        else if(ros::Time::now() - last_request >= ros::Duration(1.0))
+        else if(ros::Time::now() - last_request >= ros::Duration(10.0))
         {
           mission_num = 7;
           last_request = ros::Time::now();
@@ -824,6 +825,12 @@ int main(int argc, char **argv)
         {
           if(lib_time_record_func(0.5, ros::Time::now()))
           {
+            if(if_realsence == 1){
+              adjust_x = target6_x;
+              adjust_y = target6_y;
+              mission_num = 8; // 用深度相机调整第一个门
+              last_request = ros::Time::now();
+            }
             start_check_door_flag = true;
             mission_num = 73; // 开始雷达穿门
             last_request = ros::Time::now();
@@ -831,7 +838,7 @@ int main(int argc, char **argv)
         }
         break;
 
-      case 73:
+      case 73: //雷达检测
         mission_pos_cruise(target6_x,target6_y ,ALTITUDE,-1.57,err_max);
         if(finish_check_door_flag)
         {
@@ -842,7 +849,7 @@ int main(int argc, char **argv)
         }
         break;
 
-      case 74:
+      case 74: //横向调整
         if(mission_pos_cruise(door_x,target6_y,ALTITUDE,-1.57,err_max))
         {
           if(lib_time_record_func(0.5, ros::Time::now()))
@@ -853,7 +860,7 @@ int main(int argc, char **argv)
         }
         break;
       
-      case 75:
+      case 75: //飞至中心
         if(mission_pos_cruise(door_x,door_y,ALTITUDE,-1.57,err_max))
         {
           if(lib_time_record_func(0.5, ros::Time::now()))
@@ -864,7 +871,7 @@ int main(int argc, char **argv)
         }
         break;
 
-      case 76:
+      case 76: //继续向前
         if(mission_pos_cruise(door_x,door_y - 0.6 ,ALTITUDE,-1.57,err_max))
         {
           if(lib_time_record_func(0.5, ros::Time::now()))
@@ -912,8 +919,41 @@ int main(int argc, char **argv)
         {
           if (lib_time_record_func(0.5, ros::Time::now()))
           {
-            mission_num = 4;
-            adjust_y = 0; // 重置y坐标
+            mission_num = 82;
+            adjust_x = target6_x; // 重置y坐标
+            last_request = ros::Time::now();
+          }
+        }
+        break;
+
+      case 82: //调整第二个门
+        mission_pos_cruise(adjust_x, adjust_y, ALTITUDE, -1.57, err_max);
+        depth_flag = true; // 开启深度检测
+        if(ros::Time::now() - last_request >= ros::Duration(1.0)){
+          find_door();
+          if(door_direction == 1) // 向左调整
+          {
+            adjust_x += 0.1;
+          }
+          else if(door_direction == 2) // 向右调整
+          {
+            adjust_x -= 0.1;
+          }
+          else{
+            mission_num = 83;
+            adjust_y -= (door_distance + 0.65);
+            depth_flag = false; // 关闭深度检测
+          }
+          last_request = ros::Time::now();
+        }
+        break;
+
+      case 83:  //ego穿第二个门
+        if(pub_ego_goal(adjust_x, adjust_y, ALTITUDE, err_max_ego, 0, 1))
+        {
+          if (lib_time_record_func(0.5, ros::Time::now()))
+          {
+            mission_num = 9;
             last_request = ros::Time::now();
           }
         }
