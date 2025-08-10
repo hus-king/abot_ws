@@ -57,3 +57,5 @@ door_adjust_range : 80
 if_realsence : 0
 
 door_check_num : 5
+
+landing_gear : 0.10

@@ -9,6 +9,7 @@ float now_yaw = 0;          // 当前偏航角
 float adjust_x = 0;          // 调整X坐标
 float adjust_y = 0;          // 调整Y坐标
 int if_realsence = 0; // 是否使用RealSense相机穿门
+float landing_gear = 0.10; // 起落架高度
 
 // 目标点坐标数组
 vector<float> target_array_x;
@@ -56,6 +57,9 @@ void print_param()
   std::cout << "track_distance: " << track_distance << std::endl;
   std::cout << "ALTITUDE: " << ALTITUDE << std::endl;
   std::cout << "VIEW_ALTITUDE: " << VIEW_ALTITUDE << std::endl;
+  std::cout << "LANDING_ALTITUDE: " << LANDING_ALTITUDE << std::endl;
+  std::cout << "CATAPULT_ALTITUDE: " << CATAPULT_ALTITUDE << std::endl;
+  std::cout << "TANK_ALTITUDE: " << TANK_ALTITUDE << std::endl;
   std::cout << "if_debug: " << if_debug << std::endl;
   if(if_debug == 1) cout << "自动offboard" << std::endl;
   else cout << "遥控器offboard" << std::endl;
@@ -65,6 +69,7 @@ void print_param()
   std::cout << "catapult_shred: " << catapult_shred << std::endl;
   std::cout << "camera_height: " << camera_height << std::endl;
   std::cout << "camera_offset_body_x: " << camera_offset_body_x << std::endl;
+  std::cout << "landing_gear: " << landing_gear << std::endl;
   std::cout << "=== 穿门参数 ===" << std::endl;
   std::cout << "if_realsence: " << if_realsence << std::endl;
   if(if_realsence == 1) cout << "使用RealSense相机穿门" << std::endl;
@@ -163,6 +168,8 @@ int main(int argc, char **argv)
 
   nh.param<int>("door_check_num", door_check_num, 5);
 
+  nh.param<float>("landing_gear", landing_gear, 0);
+
   target_array_x.push_back(target1_x);
   target_array_y.push_back(target1_y);
   target_array_x.push_back(target2_x);
@@ -181,11 +188,6 @@ int main(int argc, char **argv)
   std::cin >> choice;
   if (choice != 1)
     return 0;
-
-    init_position_x_take_off = local_pos.pose.pose.position.x;
-		init_position_y_take_off = local_pos.pose.pose.position.y;
-
-
   // 等待连接到飞控
   while (ros::ok() && !current_state.connected)
   {
@@ -227,7 +229,6 @@ int main(int argc, char **argv)
 
   while (ros::ok())
   {
-    ROS_INFO("init_position_x_take_off: %f, init_position_y_take_off: %f", init_position_x_take_off, init_position_y_take_off);
     if (current_state.mode != "OFFBOARD" && (ros::Time::now() - last_request > ros::Duration(3.0)))
     {
       if(if_debug == 1)
@@ -461,6 +462,7 @@ int main(int argc, char **argv)
         }
         break;
       
+
       case 32: // 左上
         mission_pos_cruise(target_array_x[index] + track_distance, target_array_y[index] + track_distance, VIEW_ALTITUDE, now_yaw, err_max);
         if(start_checking == false && local_pos.pose.pose.position.z > (VIEW_ALTITUDE - 0.2))
@@ -587,7 +589,7 @@ int main(int argc, char **argv)
           now_check_catapult_y = check_catapult_y * cos_yaw;
         }
         
-        if(mission_pos_cruise(now_target_x + now_check_catapult_x, now_target_y + now_check_catapult_y, 0.15, now_yaw, err_max))
+        if(mission_pos_cruise(now_target_x + now_check_catapult_x, now_target_y + now_check_catapult_y, CATAPULT_ALTITUDE, now_yaw, err_max))
         {
           // 当前位置修正后投放
           if (lib_time_record_func(2.0, ros::Time::now()))
@@ -658,8 +660,12 @@ int main(int argc, char **argv)
           ROS_INFO("kalman_start_flag = true!!");
           mission_num = 62;
           last_request = ros::Time::now();
+          cos_yaw = cos(now_yaw);
+			  	sin_yaw = sin(now_yaw);
           now_target_x = box_target_x;
           now_target_y = box_target_y;
+          now_check_catapult_x = check_catapult_x * cos_yaw;
+          now_check_catapult_y = check_catapult_x * sin_yaw;
         }
         else if(ros::Time::now() - last_request >= ros::Duration(10.0))
         {
@@ -669,9 +675,9 @@ int main(int argc, char **argv)
         }
         break;
       case 62: // 悬停
-        if(mission_pos_cruise(now_target_x, now_target_y, ALTITUDE, now_yaw, err_max))
+        if(mission_pos_cruise(now_target_x + now_check_catapult_x, now_target_y + now_check_catapult_y, CATAPULT_ALTITUDE, now_yaw, err_max))
         {
-          if(lib_time_record_func(0.5,ros::Time::now()))
+          if(lib_time_record_func(2.0,ros::Time::now()))
           {
             mission_num = 7;
             last_request = ros::Time::now();
@@ -827,7 +833,7 @@ int main(int argc, char **argv)
           if (lib_time_record_func(0.3, ros::Time::now()))
           {
             mission_num = 72;
-            target6_y = target6_y - 0.6;
+            target6_y = target6_y - 1.2; // 调整y坐标
             ego_check = false; // 重置ego_check状态
             last_request = ros::Time::now();
             now_yaw = yaw;
@@ -873,20 +879,9 @@ int main(int argc, char **argv)
           }
         }
         break;
-      
-      case 75: //飞至中心
-        if(mission_pos_cruise(door_x,door_y,ALTITUDE,-1.57,err_max))
-        {
-          if(lib_time_record_func(0.5, ros::Time::now()))
-          {
-            mission_num = 76;
-            last_request = ros::Time::now();
-          }
-        }
-        break;
 
-      case 76: //继续向前
-        if(mission_pos_cruise(door_x,door_y - 0.6 ,ALTITUDE,-1.57,err_max))
+      case 75: //ego继续向前
+        if(pub_ego_goal(door_x,door_y - 0.6 ,ALTITUDE,err_max,0,1))
         {
           if(lib_time_record_func(0.5, ros::Time::now()))
           {
@@ -894,8 +889,6 @@ int main(int argc, char **argv)
             {
               now_yaw = yaw;
               mission_num = 10; // 降落任务
-              park_x = local_pos.pose.pose.position.x;
-              park_y = local_pos.pose.pose.position.y;
               last_request = ros::Time::now();
             }
             else
@@ -1006,7 +999,7 @@ int main(int argc, char **argv)
 
       case 9: // 直接降落
         arm_cmd.request.value = false;
-        if(mission_pos_cruise(park_x, park_y, -0.05, now_yaw, err_max))
+        if(mission_pos_cruise(park_x, park_y, LANDING_ALTITUDE, now_yaw, err_max))
         {
           if (lib_time_record_func(5.0, ros::Time::now()))
           {
@@ -1017,7 +1010,7 @@ int main(int argc, char **argv)
       
       case 100: // 在起飞点降落
         arm_cmd.request.value = false;
-        if(mission_pos_cruise(0, 0, -0.05, 0, err_max))
+        if(mission_pos_cruise(target7_x, target7_y, LANDING_ALTITUDE, now_yaw, err_max))
         {
           if (lib_time_record_func(5.0, ros::Time::now()))
           {

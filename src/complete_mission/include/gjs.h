@@ -29,11 +29,13 @@
 using namespace std;
 
 
-#define ALTITUDE 0.8
-#define VIEW_ALTITUDE 1.7
+#define ALTITUDE 0.7
+#define VIEW_ALTITUDE 1.6
+#define LANDING_ALTITUDE -0.15
+#define CATAPULT_ALTITUDE 0.05
 #define QR_ALTITUDE 0.40
 #define RING_HEIGHT 1.50
-#define TANK_ALTITUDE 2.0
+#define TANK_ALTITUDE 1.9
 #define PUT_TANK_ALTITUDE 1.5
 float camera_offset_body_x = 0.0; // 相机安装偏移量，单位米
 
