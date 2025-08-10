@@ -23,8 +23,8 @@ target6_x : 3.9
 target6_y : 3.0
 
 # 降落
-target7_x : 3.90
-target7_y : 3.0
+target7_x : 3.70
+target7_y : -2.90
 
 # 拐角处
 target8_x : 2.40
@@ -55,4 +55,5 @@ line_shred : 0.1
 door_adjust_range : 80
 
 if_realsence : 0
-# 1为使用realsence，0为使用
+
+door_check_num : 5

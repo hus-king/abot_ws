@@ -9,11 +9,11 @@ float now_yaw = 0;          // 当前偏航角
 float adjust_x = 0;          // 调整X坐标
 float adjust_y = 0;          // 调整Y坐标
 int if_realsence = 0; // 是否使用RealSense相机穿门
-int if_realsence = 0; // 是否使用RealSense相机穿门
 
 // 目标点坐标数组
 vector<float> target_array_x;
 vector<float> target_array_y;
+
 
 // 各个目标点坐标
 float target1_x = 0, target1_y = 0;
@@ -72,6 +72,7 @@ void print_param()
   std::cout << "line_shred: " << line_shred << std::endl;
   std::cout << "door_adjust_range: " << door_adjust_range << std::endl;
   cout << "range = " << 320 - door_adjust_range << " to " << 320 + door_adjust_range << endl;
+  cout << "door_check_num: " << door_check_num << endl;
 }
 
 
@@ -159,6 +160,8 @@ int main(int argc, char **argv)
   nh.param<int>("door_adjust_range", door_adjust_range, 70);
 
   nh.param<int>("if_realsence", if_realsence, 0);
+
+  nh.param<int>("door_check_num", door_check_num, 5);
 
   target_array_x.push_back(target1_x);
   target_array_y.push_back(target1_y);
@@ -890,7 +893,7 @@ int main(int argc, char **argv)
             if(door_num >= 2)
             {
               now_yaw = yaw;
-              mission_num = 9; // 降落任务
+              mission_num = 10; // 降落任务
               park_x = local_pos.pose.pose.position.x;
               park_y = local_pos.pose.pose.position.y;
               last_request = ros::Time::now();
@@ -975,9 +978,9 @@ int main(int argc, char **argv)
         break;
       // 降落任务
       
-      case 10: // 起飞点
+      case 10: // 前往降落点降落
         if(ego_check == false){
-          now_yaw = calculate_yaw(0, 0);
+          now_yaw = calculate_yaw(target7_x, target7_y);
           while(!current_position_cruise(0, 0, ALTITUDE, now_yaw, err_max))
           {
             mavros_setpoint_pos_pub.publish(setpoint_raw);
@@ -988,7 +991,7 @@ int main(int argc, char **argv)
           ego_check = true;
         }
         else{
-          if(pub_ego_goal(0, 0, ALTITUDE, err_max_ego, 0, 0))
+          if(pub_ego_goal(target7_x, target7_y, ALTITUDE, err_max_ego, 0, 0))
           {
             if (lib_time_record_func(0.3, ros::Time::now()))
             {
@@ -1001,7 +1004,7 @@ int main(int argc, char **argv)
         }
         break;
 
-      case 9: // 在降落点降落
+      case 9: // 直接降落
         arm_cmd.request.value = false;
         if(mission_pos_cruise(park_x, park_y, -0.05, now_yaw, err_max))
         {
