@@ -62,6 +62,7 @@ float now_target_y = 0;
 float door_step = 2;
 float door_shred = 1;
 int door_adjust_range = 70;
+float landing_gear;
 
 
 bool car_found = false;
@@ -274,8 +275,8 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
 				float center_y = bounding_box.ymin;
 				
 				// 相机坐标系下的偏移量（相对于相机光心）
-				float camera_offset_x = (cy - center_y) * (local_pos.pose.pose.position.z + camera_height - init_position_z_take_off) / fy + camera_offset_body_x;
-				float camera_offset_y = (cx - center_x) * (local_pos.pose.pose.position.z + camera_height - init_position_z_take_off) / fx;
+				float camera_offset_x = (cy - center_y) * (local_pos.pose.pose.position.z + camera_height - init_position_z_take_off + landing_gear) / fy + camera_offset_body_x;
+				float camera_offset_y = (cx - center_x) * (local_pos.pose.pose.position.z + camera_height - init_position_z_take_off + landing_gear) / fx;
 				
 				// 考虑飞机yaw角度，将相机坐标系转换到世界坐标系
 				float cos_yaw = cos(yaw);
@@ -308,8 +309,8 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
 			float center_y = bounding_box.ymin;
 			
 			// 相机坐标系下的偏移量（相对于相机光心）
-			float camera_offset_x = (cy - center_y) * (local_pos.pose.pose.position.z + camera_height - init_position_z_take_off) / fy;
-			float camera_offset_y = (cx - center_x) * (local_pos.pose.pose.position.z + camera_height - init_position_z_take_off) / fx;
+			float camera_offset_x = (cy - center_y) * (local_pos.pose.pose.position.z + camera_height - init_position_z_take_off + landing_gear) / fy;
+			float camera_offset_y = (cx - center_x) * (local_pos.pose.pose.position.z + camera_height - init_position_z_take_off + landing_gear) / fx;
 			
 			// 考虑飞机yaw角度，将相机坐标系转换到世界坐标系
 			float cos_yaw = cos(yaw);

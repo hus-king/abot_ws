@@ -9,7 +9,6 @@ float now_yaw = 0;          // 当前偏航角
 float adjust_x = 0;          // 调整X坐标
 float adjust_y = 0;          // 调整Y坐标
 int if_realsence = 0; // 是否使用RealSense相机穿门
-float landing_gear = 0.10; // 起落架高度
 
 // 目标点坐标数组
 vector<float> target_array_x;
@@ -339,6 +338,14 @@ int main(int argc, char **argv)
         
       case 2: // 确保进入ego_planner时的高度正确，角度正确
         if(ego_check == false){
+          now_yaw = yaw;
+          while(!current_position_cruise(0, 0, ALTITUDE, now_yaw, err_max))
+          {
+            mavros_setpoint_pos_pub.publish(setpoint_raw);
+            ros::spinOnce();
+            rate.sleep();
+            cout<<"checking"<<endl;
+          }
           now_yaw = calculate_yaw(target_array_x[index], target_array_y[index]);
           while(!current_position_cruise(0, 0, ALTITUDE, now_yaw, err_max))
           {
@@ -623,6 +630,14 @@ int main(int argc, char **argv)
       // 动态靶 - tank目标识别
       case 5:
         if(ego_check == false){
+          now_yaw = yaw;
+          while(!current_position_cruise(0, 0, ALTITUDE, now_yaw, err_max))
+          {
+            mavros_setpoint_pos_pub.publish(setpoint_raw);
+            ros::spinOnce();
+            rate.sleep();
+            cout<<"checking"<<endl;
+          }
           now_yaw = calculate_yaw(target5_x, target5_y);
           while(!current_position_cruise(0, 0, ALTITUDE, now_yaw, err_max))
           {
@@ -881,6 +896,17 @@ int main(int argc, char **argv)
         break;
 
       case 75: //ego继续向前
+        if(ego_check == false){
+          now_yaw = calculate_yaw(door_x, door_y - 0.6);//
+          while(!current_position_cruise(0, 0, ALTITUDE, now_yaw, err_max))
+          {
+            mavros_setpoint_pos_pub.publish(setpoint_raw);
+            ros::spinOnce();
+            rate.sleep();
+            cout<<"checking"<<endl;
+          }
+          ego_check = true;
+        }
         if(pub_ego_goal(door_x,door_y - 0.6 ,ALTITUDE,err_max,0,1))
         {
           if(lib_time_record_func(0.5, ros::Time::now()))
