@@ -191,7 +191,7 @@ bool current_position_cruise(float x, float y, float z, float yaw, float error_m
 
 	std::cout << "x: " << local_pos.pose.pose.position.x << std::endl;
 
-	if (fabs(local_pos.pose.pose.position.x - current_position_cruise_last_position_x - x) < error_max && fabs(local_pos.pose.pose.position.y - current_position_cruise_last_position_y - y) < error_max && fabs(current_yaw - yaw) < 0.1)
+	if (fabs(local_pos.pose.pose.position.x - current_position_cruise_last_position_x - x) < error_max && fabs(local_pos.pose.pose.position.y - current_position_cruise_last_position_y - y) < error_max && fabs(local_pos.pose.pose.position.z - z) < error_max && fabs(current_yaw - yaw) < 0.1)
 	{
 		ROS_INFO("到达目标点，巡航点任务完成");
 		current_position_cruise_flag = false;

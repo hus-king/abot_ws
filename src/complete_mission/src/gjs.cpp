@@ -8,6 +8,7 @@ int box_number = 0;         // 投放箱子数量
 float now_yaw = 0;          // 当前偏航角
 float adjust_x = 0;          // 调整X坐标
 float adjust_y = 0;          // 调整Y坐标
+float offset_door_x = 0; // 穿门时的X坐标偏移
 int if_realsence = 0; // 是否使用RealSense相机穿门
 
 // 目标点坐标数组
@@ -879,23 +880,33 @@ int main(int argc, char **argv)
         {
           door_num ++;
           finish_check_door_flag = false;
+          offset_door_x = target6_x;
           mission_num = 74;
           last_request = ros::Time::now();
         }
         break;
 
       case 74: //横向调整
-        if(mission_pos_cruise(door_x,target6_y,ALTITUDE,-1.57,err_max))
-        {
-          if(lib_time_record_func(0.5, ros::Time::now()))
-          {
-            mission_num = 75;
-            last_request = ros::Time::now();
+        while(abs(local_pos.pose.pose.position.x - door_x) > 0.1){
+          if(lib_time_record_func(0.5, ros::Time::now())){
+            if(door_x > local_pos.pose.pose.position.x){
+              offset_door_x = local_pos.pose.pose.position.x + 0.05;
+            }
+            else{
+              offset_door_x = local_pos.pose.pose.position.x - 0.05;
+            }
+            mission_pos_cruise(offset_door_x,target6_y,ALTITUDE,-1.57,err_max);
+            ROS_WARN("adjust_once");
           }
+          mavros_setpoint_pos_pub.publish(setpoint_raw);
+          ros::spinOnce();
+          rate.sleep();
         }
+        mission_num = 75;
+        last_request = ros::Time::now();
         break;
 
-      case 75: //ego继续向前
+      case 75: //ego向前
         if(ego_check == false){
           now_yaw = calculate_yaw(door_x, door_y - 0.6);//
           while(!current_position_cruise(0, 0, ALTITUDE, now_yaw, err_max))
