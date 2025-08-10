@@ -9,6 +9,7 @@ float now_yaw = 0;          // 当前偏航角
 float adjust_x = 0;          // 调整X坐标
 float adjust_y = 0;          // 调整Y坐标
 int if_realsence = 0; // 是否使用RealSense相机穿门
+int if_realsence = 0; // 是否使用RealSense相机穿门
 
 // 目标点坐标数组
 vector<float> target_array_x;
