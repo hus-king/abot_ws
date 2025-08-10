@@ -41,7 +41,7 @@ sigma_a : 0.1
 tank_time : 0
 tank_shred : 0
 
-camera_height : 0.05
+camera_height : 0.00
 
 err_max_ego : 0.25
 
