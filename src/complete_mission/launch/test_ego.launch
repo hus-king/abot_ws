@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="complete_mission" type="test_ego" name="" output="screen">
+  </node>
+</launch>

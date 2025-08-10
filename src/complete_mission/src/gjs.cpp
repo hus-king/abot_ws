@@ -23,6 +23,7 @@ float target5_x = 0, target5_y = 0;
 float target6_x = 0, target6_y = 0;
 float target7_x = 0, target7_y = 0;
 float target8_x = 0, target8_y = 0;
+float park_x = 0, park_y = 0; // 停机坪坐标
 float if_debug = 0; // 是否开启调试模式
 
 // 注意：只投放car，bridge，跳过pillbox，tank，tent
@@ -658,7 +659,7 @@ int main(int argc, char **argv)
         }
         else if(ros::Time::now() - last_request >= ros::Duration(10.0))
         {
-          mission_num = 10;
+          mission_num = 7;
           last_request = ros::Time::now();
           ROS_ERROR("未识别到tank目标,跳过任务");
         }
@@ -668,7 +669,7 @@ int main(int argc, char **argv)
         {
           if(lib_time_record_func(0.5,ros::Time::now()))
           {
-            mission_num = 10;
+            mission_num = 7;
             last_request = ros::Time::now();
             only_tank = false;  // 重置仅检测tank目标
             start_checking = false; // 停止识别
@@ -821,7 +822,7 @@ int main(int argc, char **argv)
         {
           if (lib_time_record_func(0.3, ros::Time::now()))
           {
-            mission_num = 71;
+            mission_num = 72;
             target6_y = target6_y - 0.6;
             ego_check = false; // 重置ego_check状态
             last_request = ros::Time::now();
@@ -889,6 +890,8 @@ int main(int argc, char **argv)
             {
               now_yaw = yaw;
               mission_num = 9; // 降落任务
+              park_x = local_pos.pose.pose.position.x;
+              park_y = local_pos.pose.pose.position.y;
               last_request = ros::Time::now();
             }
             else
@@ -999,10 +1002,12 @@ int main(int argc, char **argv)
 
       case 9: // 在降落点降落
         arm_cmd.request.value = false;
-        if(mission_pos_cruise(target7_x, target7_y, 0.01, now_yaw, err_max))
+        if(mission_pos_cruise(park_x, park_y, -0.05, now_yaw, err_max))
         {
-          ROS_INFO("Vehicle disarmed");
-          mission_num = -1;
+          if (lib_time_record_func(5.0, ros::Time::now()))
+          {
+            mission_num = -1; // 任务结束
+          }
         }
         break;
       

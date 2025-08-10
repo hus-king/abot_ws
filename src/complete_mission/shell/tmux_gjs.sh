@@ -52,9 +52,13 @@ tmux send-keys -t ros_session:2 'sleep 6; rostopic echo /mavros/local_position/p
 tmux split-window -h -t ros_session:2
 tmux send-keys -t ros_session:2.1 'sleep 6; rostopic echo /object_position' C-m
 
-# Pane 2: complete_mission.launch
-tmux split-window -v -t ros_session:2.1
-tmux send-keys -t ros_session:2.2 'sleep 7; roslaunch complete_mission gjs.launch' C-m
+# Pane 2: /door_center
+tmux split-window -h -t ros_session:2.1
+tmux send-keys -t ros_session:2.2 'sleep 6; rostopic echo /door_center' C-m
+
+# Pane 3: complete_mission.launch
+tmux split-window -v -t ros_session:2.2
+tmux send-keys -t ros_session:2.3 'sleep 7; roslaunch complete_mission gjs.launch' C-m
 
 # 整理第三个窗口布局
 tmux select-layout -t ros_session:2 tiled

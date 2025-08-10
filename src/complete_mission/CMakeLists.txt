@@ -261,8 +261,14 @@ target_link_libraries(cross_door ${catkin_LIBRARIES} lib Eigen3::Eigen)
 add_executable(cross_door_pro src/cross_door_pro.cpp)
 target_link_libraries(cross_door_pro ${catkin_LIBRARIES} lib Eigen3::Eigen)
 
+add_executable(test_ego src/test_ego.cpp)
+target_link_libraries(test_ego ${catkin_LIBRARIES} lib Eigen3::Eigen)
+
 add_executable(check_catpult src/check_catpult.cpp)
 target_link_libraries(check_catpult ${catkin_LIBRARIES} lib Eigen3::Eigen)
+
+add_executable(simple_ego src/simple_ego.cpp)
+target_link_libraries(simple_ego ${catkin_LIBRARIES} lib Eigen3::Eigen)
 
 
 add_executable(video_test_node src/video_test.cpp)
