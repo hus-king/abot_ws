@@ -10,6 +10,7 @@ float adjust_x = 0;          // 调整X坐标
 float adjust_y = 0;          // 调整Y坐标
 float offset_door_x = 0; // 穿门时的X坐标偏移
 int if_realsence = 0; // 是否使用RealSense相机穿门
+float gravity_offset_x = 0.1; // 重心偏移X坐标
 
 // 目标点坐标数组
 vector<float> target_array_x;
@@ -70,6 +71,7 @@ void print_param()
   std::cout << "camera_height: " << camera_height << std::endl;
   std::cout << "camera_offset_body_x: " << camera_offset_body_x << std::endl;
   std::cout << "landing_gear: " << landing_gear << std::endl;
+  std::cout << "gravity_offset_x: " << gravity_offset_x << std::endl;
   std::cout << "=== 穿门参数 ===" << std::endl;
   std::cout << "if_realsence: " << if_realsence << std::endl;
   if(if_realsence == 1) cout << "使用RealSense相机穿门" << std::endl;
@@ -169,6 +171,7 @@ int main(int argc, char **argv)
   nh.param<int>("door_check_num", door_check_num, 5);
 
   nh.param<float>("landing_gear", landing_gear, 0);
+  nh.param<float>("gravity_offset_x", gravity_offset_x, 0.1);
 
   target_array_x.push_back(target1_x);
   target_array_y.push_back(target1_y);
@@ -588,8 +591,8 @@ int main(int argc, char **argv)
 				sin_yaw = sin(now_yaw);
         if(box_number == 1)
         {
-          now_check_catapult_x = check_catapult_y * sin_yaw;
-          now_check_catapult_y = - check_catapult_y * cos_yaw;
+          now_check_catapult_x = check_catapult_y * sin_yaw + gravity_offset_x * cos_yaw;
+          now_check_catapult_y = - check_catapult_y * cos_yaw + gravity_offset_x * sin_yaw;
         }
         else if(box_number == 2)
         {
@@ -600,8 +603,25 @@ int main(int argc, char **argv)
         if(mission_pos_cruise(now_target_x + now_check_catapult_x, now_target_y + now_check_catapult_y, CATAPULT_ALTITUDE, now_yaw, err_max))
         {
           // 当前位置修正后投放
-          if (lib_time_record_func(2.0, ros::Time::now()))
+          if(lib_time_record_func(3.0, ros::Time::now()))
           {
+            if(box_number == 1)
+            {
+              catapult_pub_box1.publish(catapult_msg);
+            }
+            else if(box_number == 2)
+            {
+              catapult_pub_box2.publish(catapult_msg);
+            }
+            mission_num = 41;
+          }
+        }
+        break;
+
+      case 41:
+        if(mission_pos_cruise(now_target_x + now_check_catapult_x, now_target_y + now_check_catapult_y, CATAPULT_ALTITUDE, now_yaw, err_max))
+        {
+          if(lib_time_record_func(1.0, ros::Time::now())){
             if(index < 3)
             {
               mission_num = 2;
@@ -614,16 +634,6 @@ int main(int argc, char **argv)
               mission_num = 5;
               last_request = ros::Time::now();
             }
-          }
-
-          
-          if(box_number == 1)
-          {
-            catapult_pub_box1.publish(catapult_msg);
-          }
-          else if(box_number == 2)
-          {
-            catapult_pub_box2.publish(catapult_msg);
           }
         }
         break;
@@ -680,8 +690,8 @@ int main(int argc, char **argv)
 			  	sin_yaw = sin(now_yaw);
           now_target_x = box_target_x;
           now_target_y = box_target_y;
-          now_check_catapult_x = check_catapult_x * cos_yaw;
-          now_check_catapult_y = check_catapult_x * sin_yaw;
+          now_check_catapult_x = check_catapult_x * cos_yaw + gravity_offset_x * cos_yaw;
+          now_check_catapult_y = check_catapult_x * sin_yaw + gravity_offset_x * sin_yaw;
         }
         else if(ros::Time::now() - last_request >= ros::Duration(10.0))
         {
@@ -903,12 +913,14 @@ int main(int argc, char **argv)
           rate.sleep();
         }
         mission_num = 75;
+        if(door_x > (target6_x + 0.1)) door_x -= 0.1; // 向左调整
+        else if(door_x < (target6_x - 0.1)) door_x += 0.1; // 向右调整
         last_request = ros::Time::now();
         break;
 
       case 75: //ego向前
         if(ego_check == false){
-          now_yaw = calculate_yaw(door_x, door_y - 0.6);//
+          now_yaw = calculate_yaw(door_x, door_y - 0.7);//
           while(!current_position_cruise(0, 0, ALTITUDE, now_yaw, err_max))
           {
             mavros_setpoint_pos_pub.publish(setpoint_raw);
@@ -918,7 +930,7 @@ int main(int argc, char **argv)
           }
           ego_check = true;
         }
-        if(pub_ego_goal(door_x,door_y - 0.6 ,ALTITUDE,err_max,0,1))
+        if(pub_ego_goal(door_x,door_y - 0.7 ,ALTITUDE,err_max,0,1))
         {
           if(lib_time_record_func(0.5, ros::Time::now()))
           {
@@ -932,7 +944,7 @@ int main(int argc, char **argv)
             {
               start_check_door_flag = true;
               mission_num = 73;
-              target6_y = door_y - 0.6;
+              target6_y = door_y - 0.7;
               last_request = ros::Time::now();
             }
           }
