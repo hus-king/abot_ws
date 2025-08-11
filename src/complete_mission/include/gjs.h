@@ -31,6 +31,7 @@ using namespace std;
 
 #define ALTITUDE 0.7
 #define VIEW_ALTITUDE 1.6
+#define DOOR_ALTITUDE 0.3
 #define LANDING_ALTITUDE -0.15
 #define CATAPULT_ALTITUDE 0.05
 #define QR_ALTITUDE 0.40
@@ -152,6 +153,44 @@ bool mission_pos_cruise(float x, float y, float z, float yaw, float error_max)
 	{
 		ROS_INFO("到达目标点，巡航点任务完成");
 		mission_pos_cruise_flag = false;
+		return true;
+	}
+	return false;
+}
+
+/************************************************************************
+函数功能3：自主巡航，发布目标位置，控制无人机到达目标，采用local坐标系位置控制
+//1、定义变量
+//2、函数声明
+//3、函数定义
+*************************************************************************/
+float mission_pos_cruise_test_last_position_x = 0;
+float mission_pos_cruise_test_last_position_y = 0;
+bool mission_pos_cruise_test_flag = false;
+bool mission_pos_cruise_test(float x, float y, float z, float yaw, float error_max);
+bool mission_pos_cruise_test(float x, float y, float z, float yaw, float error_max)
+{
+	if (mission_pos_cruise_test_flag == false)
+	{
+		mission_pos_cruise_test_last_position_x = local_pos.pose.pose.position.x;
+		mission_pos_cruise_test_last_position_y = local_pos.pose.pose.position.y;
+		mission_pos_cruise_test_flag = true;
+	}
+	setpoint_raw.type_mask = /*1 + 2 + 4 */ +8 + 16 + 32 + 64 + 128 + 256 + 512 /*+ 1024 */ + 2048;
+	setpoint_raw.coordinate_frame = 1;
+	setpoint_raw.position.x = x + init_position_x_take_off;
+	setpoint_raw.position.y = y + init_position_y_take_off;
+	setpoint_raw.position.z = z + init_position_z_take_off;
+	setpoint_raw.yaw = yaw;
+
+	ROS_INFO("now_position:(%f,%f)  Flying to ( %.2f, %.2f )", local_pos.pose.pose.position.x ,local_pos.pose.pose.position.y,x, y);
+	ROS_INFO("target_yaw: %.2f", yaw * 180.0 / M_PI);
+	ROS_INFO("now_yaw: %.2f", square_yaw_cb * 180.0 / M_PI);
+
+	if (fabs(local_pos.pose.pose.position.x - x - init_position_x_take_off) < error_max && fabs(local_pos.pose.pose.position.y - y - init_position_y_take_off) < error_max && fabs(local_pos.pose.pose.position.z - z - init_position_z_take_off) < error_max)
+	{
+		ROS_INFO("到达目标点，巡航点任务完成");
+		mission_pos_cruise_test_flag = false;
 		return true;
 	}
 	return false;
@@ -1393,12 +1432,16 @@ void rec_traj_cb(const std_msgs::Bool::ConstPtr &msg)
 }
 
 void PI_attitude_control()
-{
+{                                                      
 	setpoint_raw.coordinate_frame = 1;
 	setpoint_raw.type_mask = 0b101111100011; // vx vy z yaw
 	setpoint_raw.velocity.x = 0.85 * ego_sub.velocity.x + (ego_sub.position.x - local_pos.pose.pose.position.x) * 1;
 	setpoint_raw.velocity.y = 0.85 * ego_sub.velocity.y + (ego_sub.position.y - local_pos.pose.pose.position.y) * 1;
-	setpoint_raw.position.z = ego_sub.position.z;
+	if(now_mode == 1)//穿门模式
+	{
+		setpoint_raw.position.z = DOOR_ALTITUDE;
+	}
+	else setpoint_raw.position.z = ego_sub.position.z;
 	setpoint_raw.yaw = ego_sub.yaw;
 
 	ROS_INFO("ego: vel_x = %.2f, vel_y = %.2f, z = %.2f, yaw = %.2f", ego_sub.velocity.x, ego_sub.velocity.y, ego_sub.position.z, ego_sub.yaw);
@@ -1469,18 +1512,19 @@ bool pub_ego_goal(float x, float y, float z, float err_max, int first_target,int
 	if (rec_traj_flag == true)
 	{
 		PI_attitude_control();
-
-		if (ego_sub.position.z > map_size_z)
+		if(now_mode == 0)
 		{
-			setpoint_raw.position.z = map_size_z;
-			std::cout << "exceed map_size_z" << std::endl;
+			if (ego_sub.position.z > map_size_z)
+			{
+				setpoint_raw.position.z = map_size_z;
+				std::cout << "exceed map_size_z" << std::endl;
+			}
+			else if (ego_sub.position.z < ground_height)
+			{
+				setpoint_raw.position.z = ground_height;
+				std::cout << "lower than ground height" << std::endl;
+			}
 		}
-		else if (ego_sub.position.z < ground_height)
-		{
-			setpoint_raw.position.z = ground_height;
-			std::cout << "lower than ground height" << std::endl;
-		}
-
         if (first_target == 1)
         {
             std::cout << "get traj" << std::endl;
