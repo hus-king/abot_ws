@@ -195,7 +195,7 @@ bool current_position_cruise(float x, float y, float z, float yaw, float error_m
 	float yaw_diff = yaw - current_yaw;
 	if (yaw_diff > M_PI) yaw_diff -= 2 * M_PI;
 	else if (yaw_diff < -M_PI) yaw_diff += 2 * M_PI;
-	setpoint_raw.yaw_rate = yaw_diff * 0.5; // 设置yaw_rate，P控制
+	setpoint_raw.yaw_rate = yaw_diff * 0.8; // 设置yaw_rate，P控制
 	if (fabs(local_pos.pose.pose.position.x - current_position_cruise_last_position_x - x) < error_max && fabs(local_pos.pose.pose.position.y - current_position_cruise_last_position_y - y) < error_max && fabs(local_pos.pose.pose.position.z - z) < error_max && fabs(current_yaw - yaw) < 0.1)
 	{
 		ROS_INFO("到达目标点，巡航点任务完成");
