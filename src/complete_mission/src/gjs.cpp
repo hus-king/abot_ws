@@ -17,6 +17,7 @@ vector<float> target_array_x;
 vector<float> target_array_y;
 
 
+
 // 各个目标点坐标
 float target1_x = 0, target1_y = 0;
 float target2_x = 0, target2_y = 0;
@@ -73,6 +74,9 @@ void print_param()
   std::cout << "camera_offset_body_x: " << camera_offset_body_x << std::endl;
   std::cout << "landing_gear: " << landing_gear << std::endl;
   std::cout << "gravity_offset_x: " << gravity_offset_x << std::endl;
+  std::cout << "target_1: " << target_1 << std::endl;
+  std::cout << "target_2: " << target_2 << std::endl;
+  std::cout << "target_3: " << target_3 << std::endl;
   std::cout << "=== 穿门参数 ===" << std::endl;
   std::cout << "if_realsence: " << if_realsence << std::endl;
   if(if_realsence == 1) cout << "使用RealSense相机穿门" << std::endl;
@@ -173,6 +177,10 @@ int main(int argc, char **argv)
 
   nh.param<float>("landing_gear", landing_gear, 0);
   nh.param<float>("gravity_offset_x", gravity_offset_x, 0.1);
+
+  nh.param<string>("target_1", target_1, "car");
+  nh.param<string>("target_2", target_2, "bridge");
+  nh.param<string>("target_3", target_3, "pillbox");
 
   target_array_x.push_back(target1_x);
   target_array_y.push_back(target1_y);
@@ -366,7 +374,7 @@ int main(int argc, char **argv)
           {
             if(lib_time_record_func(0.5, ros::Time::now()))
             {
-              if(box_number >= 2)
+              if(box_number >= 3)
               {
                 if(index == 4)
                 {
@@ -597,8 +605,13 @@ int main(int argc, char **argv)
         }
         else if(box_number == 2)
         {
-          now_check_catapult_x = - check_catapult_y * sin_yaw;
-          now_check_catapult_y = check_catapult_y * cos_yaw;
+          now_check_catapult_x = - check_catapult_y * sin_yaw + gravity_offset_x * cos_yaw;
+          now_check_catapult_y = check_catapult_y * cos_yaw + gravity_offset_x * sin_yaw;
+        }
+        else if(box_number == 3)
+        {
+          now_check_catapult_x = check_catapult_x * cos_yaw + gravity_offset_x * cos_yaw;
+          now_check_catapult_y = check_catapult_x * sin_yaw + gravity_offset_x * sin_yaw;
         }
         
         if(mission_pos_cruise(now_target_x + now_check_catapult_x, now_target_y + now_check_catapult_y, CATAPULT_ALTITUDE, now_yaw, err_max))
@@ -613,6 +626,10 @@ int main(int argc, char **argv)
             else if(box_number == 2)
             {
               catapult_pub_box2.publish(catapult_msg);
+            }
+            else if(box_number == 3)
+            {
+              catapult_pub_box3.publish(catapult_msg);
             }
             mission_num = 41;
           }

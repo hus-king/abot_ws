@@ -65,9 +65,13 @@ float door_shred = 1;
 int door_adjust_range = 70;
 float landing_gear;
 
+string target_1 = "car";
+string target_2 = "bridge";
+string target_3 = "pillbox";
 
-bool car_found = false;
-bool bridge_found = false;
+bool target_1_found = false;
+bool target_2_found = false;
+bool target_3_found = false;
 
 double calculate_abs_distance(double x1,double y1,double x2,double y2)
 {
@@ -158,44 +162,6 @@ bool mission_pos_cruise(float x, float y, float z, float yaw, float error_max)
 	return false;
 }
 
-/************************************************************************
-函数功能3：自主巡航，发布目标位置，控制无人机到达目标，采用local坐标系位置控制
-//1、定义变量
-//2、函数声明
-//3、函数定义
-*************************************************************************/
-float mission_pos_cruise_test_last_position_x = 0;
-float mission_pos_cruise_test_last_position_y = 0;
-bool mission_pos_cruise_test_flag = false;
-bool mission_pos_cruise_test(float x, float y, float z, float yaw, float error_max);
-bool mission_pos_cruise_test(float x, float y, float z, float yaw, float error_max)
-{
-	if (mission_pos_cruise_test_flag == false)
-	{
-		mission_pos_cruise_test_last_position_x = local_pos.pose.pose.position.x;
-		mission_pos_cruise_test_last_position_y = local_pos.pose.pose.position.y;
-		mission_pos_cruise_test_flag = true;
-	}
-	setpoint_raw.type_mask = /*1 + 2 + 4 */ +8 + 16 + 32 + 64 + 128 + 256 + 512 /*+ 1024 */ + 2048;
-	setpoint_raw.coordinate_frame = 1;
-	setpoint_raw.position.x = x + init_position_x_take_off;
-	setpoint_raw.position.y = y + init_position_y_take_off;
-	setpoint_raw.position.z = z + init_position_z_take_off;
-	setpoint_raw.yaw = yaw;
-
-	ROS_INFO("now_position:(%f,%f)  Flying to ( %.2f, %.2f )", local_pos.pose.pose.position.x ,local_pos.pose.pose.position.y,x, y);
-	ROS_INFO("target_yaw: %.2f", yaw * 180.0 / M_PI);
-	ROS_INFO("now_yaw: %.2f", square_yaw_cb * 180.0 / M_PI);
-
-	if (fabs(local_pos.pose.pose.position.x - x - init_position_x_take_off) < error_max && fabs(local_pos.pose.pose.position.y - y - init_position_y_take_off) < error_max && fabs(local_pos.pose.pose.position.z - z - init_position_z_take_off) < error_max)
-	{
-		ROS_INFO("到达目标点，巡航点任务完成");
-		mission_pos_cruise_test_flag = false;
-		return true;
-	}
-	return false;
-}
-
 
 
 /************************************************************************
@@ -206,7 +172,6 @@ bool mission_pos_cruise_test(float x, float y, float z, float yaw, float error_m
 *************************************************************************/
 float current_position_cruise_last_position_x = 0;
 float current_position_cruise_last_position_y = 0;
-float current_position_cruise_last_position_yaw = 0;
 bool current_position_cruise_flag = false;
 bool current_position_cruise(float x, float y, float z, float yaw, float error_max);
 bool current_position_cruise(float x, float y, float z, float yaw, float error_max)
@@ -217,27 +182,32 @@ bool current_position_cruise(float x, float y, float z, float yaw, float error_m
 		current_position_cruise_last_position_y = local_pos.pose.pose.position.y;
 		current_position_cruise_flag = true;
 	}
-	setpoint_raw.type_mask = /*1 + 2 + 4 */ +8 + 16 + 32 + 64 + 128 + 256 + 512 /*+ 1024 */ + 2048;
+	setpoint_raw.type_mask = /*1 + 2 + 4 */ +8 + 16 + 32 + 64 + 128 + 256 + 512 + 1024 /*+ 2048*/;
 	setpoint_raw.coordinate_frame = 1;
 	setpoint_raw.position.x = current_position_cruise_last_position_x + x;
 	setpoint_raw.position.y = current_position_cruise_last_position_y + y;
 	setpoint_raw.position.z = z;
-	setpoint_raw.yaw = yaw;
 	double current_yaw, a, b;
 	tf::Quaternion quat;
 	tf::quaternionMsgToTF(local_pos.pose.pose.orientation, quat);
 	tf::Matrix3x3(quat).getRPY(a, b, current_yaw);
-
-	std::cout << "x: " << local_pos.pose.pose.position.x << std::endl;
-
+	ROS_WARN("current_yaw: %.2f", current_yaw * 180.0 / M_PI);
+	float yaw_diff = yaw - current_yaw;
+	if (yaw_diff > M_PI) yaw_diff -= 2 * M_PI;
+	else if (yaw_diff < -M_PI) yaw_diff += 2 * M_PI;
+	setpoint_raw.yaw_rate = yaw_diff * 0.5; // 设置yaw_rate，P控制
 	if (fabs(local_pos.pose.pose.position.x - current_position_cruise_last_position_x - x) < error_max && fabs(local_pos.pose.pose.position.y - current_position_cruise_last_position_y - y) < error_max && fabs(local_pos.pose.pose.position.z - z) < error_max && fabs(current_yaw - yaw) < 0.1)
 	{
 		ROS_INFO("到达目标点，巡航点任务完成");
 		current_position_cruise_flag = false;
+		setpoint_raw.yaw_rate = 0.0; // 重置yaw_rate
+		setpoint_raw.type_mask = /*1 + 2 + 4 */ +8 + 16 + 32 + 64 + 128 + 256 + 512 + /*1024 + */2048;
+		setpoint_raw.yaw = yaw; // 确保最终yaw角度正确
 		return true;
 	}
 	return false;
 }
+
 
 /************************************************************************
 函数功能: yolov8
@@ -246,8 +216,8 @@ bool current_position_cruise(float x, float y, float z, float yaw, float error_m
 //3、函数定义
 *************************************************************************/
 bool start_checking = false;  // YOLO检测启动标志：true=开始目标检测，false=停止检测
-bool only_tank = false; // 仅检测tank目标标志：true=只检测tank，false=检测car和bridge
-bool found = false;           // 固定目标发现标志：累计检测到car或bridge达到阈值次数时为true
+bool only_tank = false; // 仅检测tank目标标志：true=只检测tank，false=检测target_1和target_2和target_3
+bool found = false;           // 固定目标发现标志：累计检测到target_1或target_2或target_3达到阈值次数时为true
 bool found_false = false;     // 错误目标发现标志：连续检测到非期望目标达到阈值次数时为true
 bool found_tank = false;      // 移动目标发现标志：累计检测到tank达到阈值次数时为true
 
@@ -259,11 +229,12 @@ float fy = 531.062457146004;
 float cx = 331.091420250469;
 float cy = 248.782850955389;
 
-std::string target_data[2] = {"car","bridge"};  // 目标检测类别数组，只检测车辆和桥梁两种目标
+std::string target_data[3] = {target_1,target_2,target_3};  // 目标检测类别数组，只检测车辆和桥梁和碉堡三种目标
 
 // 累计检测计数器 - 用于消除误检，提高检测可靠性
-int car_detect_count = 0;        // 车辆目标累计检测次数计数器
-int bridge_detect_count = 0;     // 桥梁目标累计检测次数计数器
+int target_1_detect_count = 0;        // 车辆目标累计检测次数计数器
+int target_2_detect_count = 0;     // 桥梁目标累计检测次数计数器
+int target_3_detect_count = 0;    // 碉堡目标累计检测次数计数器
 int tank_detect_count = 0;       // 坦克目标累计检测次数计数器（用于移动目标跟踪）
 int false_detect_count = 0;      // 错误目标检测计数器（检测到非期望目标时递增）
 const int DETECT_THRESHOLD = 10; // 目标确认阈值：需要累计检测10次才确认找到目标（消除误检）
@@ -272,16 +243,18 @@ const int FALSE_THRESHOLD = 10;  // 错误检测阈值：连续10次错误检测
 void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){    
     if(!start_checking) {
         // 重置检测计数器
-        car_detect_count = 0;
-        bridge_detect_count = 0;
+        target_1_detect_count = 0;
+        target_2_detect_count = 0;
+		target_3_detect_count = 0;
         tank_detect_count = 0;
         false_detect_count = 0;
         return;
     }
 	
     // 临时标记本次是否检测到目标
-    bool car_detected_this_frame = false;
-    bool bridge_detected_this_frame = false;
+    bool target_1_detected_this_frame = false;
+    bool target_2_detected_this_frame = false;
+	bool target_3_detected_this_frame = false;
     bool tank_detected_this_frame = false;
     
     for(yolov8_ros_msgs::BoundingBox bounding_box:msg->bounding_boxes)
@@ -293,17 +266,17 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
 		cb.probability = bounding_box.probability;
 		if(bounding_box.Class.empty()) continue; // 如果类别为空，跳过该框
         
-        // 检查是否为car或bridge且之前未找到
-		bool is_target_found = false;
-		for(int i = 0; i < 2; i++){
+        // 检查是否为target_1或target_2或target_3且之前未找到
+		bool is_target_found = false; // 标记本次是否检测到期望目标
+		for(int i = 0; i < 3; i++){
 			if(only_tank) break; // 如果仅检测tank，跳过其他目标
             string target = target_data[i];
 			if(target == bounding_box.Class)
 			{
                 // 检查是否已经找到过该目标
-                if((target == "car" && car_found) || (target == "bridge" && bridge_found)) {
+                if((target == target_1 && target_1_found) || (target == target_2 && target_2_found) || (target == target_3 && target_3_found)) {
                     std::cout << "已找到过" << target << "，忽略该检测" << std::endl;
-                    is_target_found = true;
+                    is_target_found = false;
                     break;  // 已找到过，不处理
                 }
                 
@@ -328,11 +301,15 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
 				std::cout << "calculate_box_target_x = " << box_target_x << ", calculate_box_target_y = " << box_target_y << std::endl;
 				
                 // 标记本次检测到该目标
-                if(target == "car") {
-                    car_detected_this_frame = true;
-                } else if(target == "bridge") {
-                    bridge_detected_this_frame = true;
+                if(target == target_1) {
+                    target_1_detected_this_frame = true;
+                } 
+				else if(target == target_2) {
+                    target_2_detected_this_frame = true;
                 }
+				else if(target == target_3) {
+					target_3_detected_this_frame = true;
+				}
                 
                 is_target_found = true;
 				break;
@@ -361,7 +338,7 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
 			
 			std::cout << "tank center_x = " << center_x << ", center_y = " << center_y << std::endl;
 			std::cout << "tank calculate_box_target_x = " << box_target_x << ", calculate_box_target_y = " << box_target_y << std::endl;
-		}		// 如果不是car或bridge，增加错误检测计数（包括tank）
+		}		// 如果不是target_1或target_2或target_3，增加错误检测计数（包括tank）
 		if(!is_target_found) {
 		    false_detect_count++;
 		    std::cout << "本次检测到非目标类别: " << bounding_box.Class << "，错误检测次数: " << false_detect_count << "/" << FALSE_THRESHOLD << std::endl;
@@ -369,13 +346,16 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
     }
     
     // 更新检测计数器
-    if(car_detected_this_frame) {
-        car_detect_count++;
-		std::cout<< "本次检测到car,累计次数: " << car_detect_count << "/" << DETECT_THRESHOLD << std::endl;
-    } else if(bridge_detected_this_frame) {
-        bridge_detect_count++;
-        std::cout<< "本次检测到bridge,累计次数: " << bridge_detect_count << "/" << DETECT_THRESHOLD << std::endl;
-    }    
+    if(target_1_detected_this_frame) {
+        target_1_detect_count++;
+		std::cout<< "本次检测到"<<target_1<<",累计次数: " << target_1_detect_count << "/" << DETECT_THRESHOLD << std::endl;
+    } else if(target_2_detected_this_frame) {
+        target_2_detect_count++;
+        std::cout<< "本次检测到"<<target_2<<",累计次数: " << target_2_detect_count << "/" << DETECT_THRESHOLD << std::endl;
+    } else if(target_3_detected_this_frame) {
+		target_3_detect_count++;
+		std::cout<< "本次检测到"<<target_3<<",累计次数: " << target_3_detect_count << "/" << DETECT_THRESHOLD << std::endl;
+	}
     // 单独更新tank检测计数器
     if(tank_detected_this_frame) {
         tank_detect_count++;
@@ -385,17 +365,23 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
     // 注意：tank仍算作错误目标
     
     // 判断是否达到检测阈值
-    if(car_detect_count >= DETECT_THRESHOLD && !car_found) {
-        car_found = true;
+    if(target_1_detect_count >= DETECT_THRESHOLD && !target_1_found) {
+        target_1_found = true;
         found = true;
-        std::cout << "累计检测到car " << DETECT_THRESHOLD << " 次，确认找到car!" << std::endl;
+        std::cout << "累计检测到" << target_1 << "  " << DETECT_THRESHOLD << " 次，确认找到" << target_1 << "!" << std::endl;
     }
     
-    if(bridge_detect_count >= DETECT_THRESHOLD && !bridge_found) {
-        bridge_found = true;
+    if(target_2_detect_count >= DETECT_THRESHOLD && !target_2_found) {
+        target_2_found = true;
         found = true;
-        std::cout << "累计检测到bridge " << DETECT_THRESHOLD << " 次，确认找到bridge!" << std::endl;
+        std::cout << "累计检测到 " << target_2 << "  " << DETECT_THRESHOLD << " 次，确认找到" << target_2 << "!" << std::endl;
     }
+
+	if(target_3_detect_count >= DETECT_THRESHOLD && !target_3_found) {
+		target_3_found = true;
+		found = true;
+		std::cout << "累计检测到" << target_3 << "  " << DETECT_THRESHOLD << " 次，确认找到" << target_3 << "!" << std::endl;
+	}
     
     // 单独判断tank检测
     if(tank_detect_count >= DETECT_THRESHOLD) {

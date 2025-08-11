@@ -35,7 +35,7 @@ tmux send-keys -t ros_session:1.1 'sleep 5; roslaunch camera_processor camera.la
 
 # Pane 2: 3d_detector
 tmux split-window -v -t ros_session:1.1
-tmux send-keys -t ros_session:1.2 'sleep 4; source ~/xxuz_ws/devel/setup.bash; roslaunch door_detector door_detector.launch' C-m
+tmux send-keys -t ros_session:1.2 'sleep 4; source ~/yzk_ws/devel/setup.bash; roslaunch door_detector door_detector.launch' C-m
 
 # 整理第二个窗口布局
 tmux select-layout -t ros_session:1 tiled

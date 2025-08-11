@@ -250,7 +250,7 @@ int main(int argc, char **argv)
         break;
         
       case 2:
-        if (mission_pos_cruise(1, 0, ALTITUDE, 0, err_max))
+        if (current_position_cruise(0, 0, ALTITUDE, 1.57, err_max))
         {
           if(lib_time_record_func(0.5, ros::Time::now()))
           {
@@ -262,47 +262,11 @@ int main(int argc, char **argv)
         break;
 
       case 3:
-        if (mission_pos_cruise(1, 0, ALTITUDE, 0, err_max))
-        {
-          if(lib_time_record_func(2.0,ros::Time::now()))
-          {
-            mission_num = 4;
-            last_request = ros::Time::now();
-          }
-          catapult_pub_box1.publish(catapult_msg);
-        }
-        break;
-
-      case 4:
-        if (mission_pos_cruise(1, 0, ALTITUDE, 0, err_max))
-        {
-          if(lib_time_record_func(2.0,ros::Time::now()))
-          {
-            mission_num = 5;
-            last_request = ros::Time::now();
-          }
-          catapult_pub_box2.publish(catapult_msg);
-        }
-        break;
-
-      case 5:
-        if (mission_pos_cruise(1, 0, ALTITUDE, 0, err_max))
-        {
-          if(lib_time_record_func(2.0,ros::Time::now()))
-          {
-            mission_num = 6;
-            last_request = ros::Time::now();
-          }
-          catapult_pub_box_large.publish(catapult_msg);
-        }
-        break;
-
-      case 6:
         if (mission_pos_cruise(0, 0, ALTITUDE, 0, err_max))
         {
           if(lib_time_record_func(0.5, ros::Time::now()))
           {
-            mission_num = 6;
+            mission_num = 10;
             now_yaw = yaw;
             last_request = ros::Time::now();
           } 
@@ -311,9 +275,9 @@ int main(int argc, char **argv)
 
         case 10: // 在起飞点降落
         arm_cmd.request.value = false;
-        if(mission_pos_cruise(0, 0, -0.02, 0, err_max))
+        if(mission_pos_cruise(0, 0, -0.05, 0, err_max))
         {
-          if (lib_time_record_func(5.0, ros::Time::now()))
+          if (lib_time_record_func(4.0, ros::Time::now()))
           {
             mission_num = -1; // 任务结束
           }

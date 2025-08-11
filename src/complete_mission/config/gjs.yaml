@@ -61,3 +61,9 @@ door_check_num : 5
 landing_gear : 0.105
 
 gravity_offset_x : 0.2
+
+# 投放固定靶子
+
+target_1 : "car"
+target_2 : "bridge"
+target_3 : "pillbox"

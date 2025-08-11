@@ -267,6 +267,9 @@ target_link_libraries(test_ego ${catkin_LIBRARIES} lib Eigen3::Eigen)
 add_executable(check_catpult src/check_catpult.cpp)
 target_link_libraries(check_catpult ${catkin_LIBRARIES} lib Eigen3::Eigen)
 
+add_executable(check_yaw src/check_yaw.cpp)
+target_link_libraries(check_yaw ${catkin_LIBRARIES} lib Eigen3::Eigen)
+
 add_executable(simple_ego src/simple_ego.cpp)
 target_link_libraries(simple_ego ${catkin_LIBRARIES} lib Eigen3::Eigen)
 
