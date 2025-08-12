@@ -125,6 +125,8 @@ int main(int argc, char **argv)
   
 
   ros::Subscriber yolo_ros_box_sub = nh.subscribe<yolov8_ros_msgs::BoundingBoxes>("/object_position", 1, yolo_ros_cb);
+
+  ros::Subscriber yolo_ros_box_H_sub = nh.subscribe<yolov8_ros_msgs::BoundingBoxes>("/object_position_H", 1, yolo_ros_H_cb);
   
   ros::Subscriber depth_sub = nh.subscribe<camera_processor::PointDepth>("/camera_processor/depth/points", 1, depth_image_cb);
   ros::Subscriber door_lidar_sub = nh.subscribe<geometry_msgs::PointStamped>("/door_center",1,door_lidar_cb); //3D雷达
@@ -342,7 +344,7 @@ int main(int argc, char **argv)
         {
           if(lib_time_record_func(0.5, ros::Time::now()))
           {
-            mission_num = 7;
+            mission_num = 2;
             now_yaw = yaw;
             last_request = ros::Time::now();
           } 

@@ -64,6 +64,6 @@ gravity_offset_x : 0.25
 
 # 投放固定靶子
 
-target_1 : "car"
+target_1 : "tent"
 target_2 : "bridge"
-target_3 : "pillbox"
+target_3 : "pillbox"  

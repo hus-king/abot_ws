@@ -258,6 +258,10 @@ target_link_libraries(depth_door ${catkin_LIBRARIES} lib Eigen3::Eigen)
 add_executable(cross_door src/cross_door.cpp)
 target_link_libraries(cross_door ${catkin_LIBRARIES} lib Eigen3::Eigen)
 
+
+add_executable(check_land src/check_land.cpp)
+target_link_libraries(check_land ${catkin_LIBRARIES} lib Eigen3::Eigen)
+
 add_executable(cross_door_pro src/cross_door_pro.cpp)
 target_link_libraries(cross_door_pro ${catkin_LIBRARIES} lib Eigen3::Eigen)
 

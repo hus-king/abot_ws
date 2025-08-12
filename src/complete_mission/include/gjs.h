@@ -216,6 +216,7 @@ bool current_position_cruise(float x, float y, float z, float yaw, float error_m
 //3、函数定义
 *************************************************************************/
 bool start_checking = false;  // YOLO检测启动标志：true=开始目标检测，false=停止检测
+bool start_checking_H = false; // YOLO检测启动标志：true=开始目标检测，false=停止检测
 bool only_tank = false; // 仅检测tank目标标志：true=只检测tank，false=检测target_1和target_2和target_3
 bool found = false;           // 固定目标发现标志：累计检测到target_1或target_2或target_3达到阈值次数时为true
 bool found_false = false;     // 错误目标发现标志：连续检测到非期望目标达到阈值次数时为true
@@ -393,6 +394,39 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
     if(false_detect_count >= FALSE_THRESHOLD) {
         found_false = true;
         std::cout << "连续检测到错误目标 " << FALSE_THRESHOLD << " 次，found_false设为true!" << std::endl;
+    }
+}
+
+void yolo_ros_H_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){    
+    if(!start_checking_H) return;
+    for(yolov8_ros_msgs::BoundingBox bounding_box:msg->bounding_boxes)
+    {        
+		if(bounding_box.probability < 0.7) continue; //保险误发送，重新检验置信度
+    	std::cout<<"CLASS: "<<bounding_box.Class<<std::endl;
+		cb.Class = bounding_box.Class;
+		std::cout<<"probability: "<<bounding_box.probability<<std::endl;
+		cb.probability = bounding_box.probability;
+		if(bounding_box.Class.empty()) continue; // 如果类别为空，跳过该框
+		found = true;
+                
+		// 计算目标位置（考虑飞机yaw角度）
+		float center_x = bounding_box.xmin;
+		float center_y = bounding_box.ymin;
+		
+		// 相机坐标系下的偏移量（相对于相机光心）
+		float camera_offset_x = (cy - center_y) * (local_pos.pose.pose.position.z + camera_height - init_position_z_take_off /*+ landing_gear*/) / fy + camera_offset_body_x;
+		float camera_offset_y = (cx - center_x) * (local_pos.pose.pose.position.z + camera_height - init_position_z_take_off /*+ landing_gear*/) / fx;
+		
+		// 考虑飞机yaw角度，将相机坐标系转换到世界坐标系
+		float cos_yaw = cos(yaw);
+		float sin_yaw = sin(yaw);
+		
+		// 世界坐标系下的目标位置
+		box_target_x = local_pos.pose.pose.position.x + camera_offset_x * cos_yaw - camera_offset_y * sin_yaw;
+		box_target_y = local_pos.pose.pose.position.y + camera_offset_x * sin_yaw + camera_offset_y * cos_yaw;
+		std::cout << "center_x = " << center_x << ", center_y = " << center_y << std::endl;
+		std::cout << "calculate_box_target_x = " << box_target_x << ", calculate_box_target_y = " << box_target_y << std::endl;
+				
     }
 }
 
