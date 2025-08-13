@@ -24,7 +24,6 @@
 #include <eigen3/Eigen/Dense>
 #include <deque>
 #include <image_transport/image_transport.h>
-#include <camera_processor/PointDepth.h>
 
 using namespace std;
 
@@ -267,6 +266,10 @@ void yolo_ros_cb(const yolov8_ros_msgs::BoundingBoxes::ConstPtr &msg){
 		cb.probability = bounding_box.probability;
 		if(bounding_box.Class.empty()) continue; // 如果类别为空，跳过该框
         
+		target_data[0] = target_1;
+		target_data[1] = target_2;
+		target_data[2] = target_3;
+
         // 检查是否为target_1或target_2或target_3且之前未找到
 		bool is_target_found = false; // 标记本次是否检测到期望目标
 		for(int i = 0; i < 3; i++){
@@ -1077,328 +1080,328 @@ bool target_through(float pos_x, float pos_y, float z, float yaw)
 //2、函数声明
 //3、函数定义
 *************************************************************************/
-float horizon_depth[640];
-bool depth_flag = false;
-int left_door_point = -1; // 左侧门的起始点
-int right_door_point = -1; // 右侧门的起始点
-float door_distance = 0; // 门的距离
-int door_direction = 0; // 门的方向，1向左，2表示向右，0表示不调整
-void depth_image_cb(const camera_processor::PointDepthConstPtr &msg)
-{
-	int depth_error = 10;
-    if (!depth_flag) return;
+// float horizon_depth[640];
+// bool depth_flag = false;
+// int left_door_point = -1; // 左侧门的起始点
+// int right_door_point = -1; // 右侧门的起始点
+// float door_distance = 0; // 门的距离
+// int door_direction = 0; // 门的方向，1向左，2表示向右，0表示不调整
+// void depth_image_cb(const camera_processor::PointDepthConstPtr &msg)
+// {
+// 	int depth_error = 10;
+//     if (!depth_flag) return;
     
-    // 检查数据长度是否匹配（640*480）
-    if (msg->depths.size() != 640 * 480) {
-        ROS_WARN("Depth data size mismatch! Expected %d, got %zu", 
-                 640*480, msg->depths.size());
-        return;
-    }
-	float sum = 0;
-	float num = 0;
+//     // 检查数据长度是否匹配（640*480）
+//     if (msg->depths.size() != 640 * 480) {
+//         ROS_WARN("Depth data size mismatch! Expected %d, got %zu", 
+//                  640*480, msg->depths.size());
+//         return;
+//     }
+// 	float sum = 0;
+// 	float num = 0;
     
-    // 将二维数组转换为一维数组（y行x列）
-    for (int x = 0; x < 640; ++x) {
-		sum = 0;
-		num = 0;
-        for (int y = 220; y < 260; ++y){
-            // 原始数据存储格式：y*640 + x（与发布时一致）
-            size_t index = y * 640 + x;
-			if(msg->depths[index]==0) continue;
-			sum += msg->depths[index];
-			num ++;
-        }
-		if(num == 0) horizon_depth[x] = depth_error++;
-		else{
-			horizon_depth[x] = sum / num;
-			if(horizon_depth[x] > 2) horizon_depth[x] = depth_error++; // 限制最大值为2
-		}
-    }
-}
+//     // 将二维数组转换为一维数组（y行x列）
+//     for (int x = 0; x < 640; ++x) {
+// 		sum = 0;
+// 		num = 0;
+//         for (int y = 220; y < 260; ++y){
+//             // 原始数据存储格式：y*640 + x（与发布时一致）
+//             size_t index = y * 640 + x;
+// 			if(msg->depths[index]==0) continue;
+// 			sum += msg->depths[index];
+// 			num ++;
+//         }
+// 		if(num == 0) horizon_depth[x] = depth_error++;
+// 		else{
+// 			horizon_depth[x] = sum / num;
+// 			if(horizon_depth[x] > 2) horizon_depth[x] = depth_error++; // 限制最大值为2
+// 		}
+//     }
+// }
 
-//1:left 2:right
-int judge_door()
-{
-	float last_average = 0;
-	float now_average = 0;
-	float door_sum = 0;
-	bool door_flag = true;
-	for(int i = door_step ; i < 640-door_step ; i += door_step + 1)
-	{
-		door_sum = 0;
-		for(int j = i - door_step; j <= i + door_step; j++)
-		{
-			if(horizon_depth[j] == 10) 
-			{
-				door_flag = false;
-				break;
-			}
-			door_sum += horizon_depth[j];
-		}
-		if(!door_flag)
-		{
-			door_flag = true;
-			continue;
-		}
-		now_average = door_sum/(2*door_step + 1);
-		if(now_average <= 0) continue;
-		cout << i <<": now_average = " << now_average << "last_average = " << last_average << endl;
-		if(last_average!=0 && abs(last_average - now_average) >= door_shred)
-		{
-			if(last_average - now_average >= 0) return 1;
-			else if(last_average - now_average < 0) return 2;
-		}
-		last_average = now_average;
-	}
-	return 0;
-}
-struct {
-	int left;
-	int right;
-	int width;
-	float distance;
-} line[640];
+// //1:left 2:right
+// int judge_door()
+// {
+// 	float last_average = 0;
+// 	float now_average = 0;
+// 	float door_sum = 0;
+// 	bool door_flag = true;
+// 	for(int i = door_step ; i < 640-door_step ; i += door_step + 1)
+// 	{
+// 		door_sum = 0;
+// 		for(int j = i - door_step; j <= i + door_step; j++)
+// 		{
+// 			if(horizon_depth[j] == 10) 
+// 			{
+// 				door_flag = false;
+// 				break;
+// 			}
+// 			door_sum += horizon_depth[j];
+// 		}
+// 		if(!door_flag)
+// 		{
+// 			door_flag = true;
+// 			continue;
+// 		}
+// 		now_average = door_sum/(2*door_step + 1);
+// 		if(now_average <= 0) continue;
+// 		cout << i <<": now_average = " << now_average << "last_average = " << last_average << endl;
+// 		if(last_average!=0 && abs(last_average - now_average) >= door_shred)
+// 		{
+// 			if(last_average - now_average >= 0) return 1;
+// 			else if(last_average - now_average < 0) return 2;
+// 		}
+// 		last_average = now_average;
+// 	}
+// 	return 0;
+// }
+// struct {
+// 	int left;
+// 	int right;
+// 	int width;
+// 	float distance;
+// } line[640];
 
-float line_shred = 0.1;//线段分割的阈值
-int line_key = 0; //找到的线段数量
+// float line_shred = 0.1;//线段分割的阈值
+// int line_key = 0; //找到的线段数量
 
-void find_line(){
-	for(int i = 0; i < 640; i++){
-		line[i].left = -1;
-		line[i].right = -1;
-		line[i].width = 0;
-	}
-	line[0].left = 0;
-	line_key = 0;
-	for(int i = 0; i < 640; i++){
-		if( abs(horizon_depth[i] - horizon_depth[line[line_key].left]) < line_shred){
-			line[line_key].right = i;
-			line[line_key].width++;
-		}else{
-			line[line_key].right = i - 1;
-			line_key++;
-			line[line_key].left = i;
-		}
-	}
-}
-void print_line(){
-	int valid_line_count = 0;
-	for(int i = 0; i <= line_key; i++){
-		if(line[i].width > 60){
-			valid_line_count++;
-		}
-	}
-	// ROS_INFO("找到的线段数量: %d, 长度大于20的线段数量: %d", line_key, valid_line_count);
-	for(int i = 0; i <= line_key; i++){
-		if(line[i].width > 60){
-			line[i].distance = (horizon_depth[line[i].left] + horizon_depth[line[i].right]) / 2;
-			// ROS_INFO("Line %d: left = %d, right = %d, width = %d, distance = %.2f", i, line[i].left, line[i].right, line[i].width, line[i].distance);
-		}
-	}
-}
-void find_door() {
-    ROS_INFO("开始门检测，将连续检测5次");
+// void find_line(){
+// 	for(int i = 0; i < 640; i++){
+// 		line[i].left = -1;
+// 		line[i].right = -1;
+// 		line[i].width = 0;
+// 	}
+// 	line[0].left = 0;
+// 	line_key = 0;
+// 	for(int i = 0; i < 640; i++){
+// 		if( abs(horizon_depth[i] - horizon_depth[line[line_key].left]) < line_shred){
+// 			line[line_key].right = i;
+// 			line[line_key].width++;
+// 		}else{
+// 			line[line_key].right = i - 1;
+// 			line_key++;
+// 			line[line_key].left = i;
+// 		}
+// 	}
+// }
+// void print_line(){
+// 	int valid_line_count = 0;
+// 	for(int i = 0; i <= line_key; i++){
+// 		if(line[i].width > 60){
+// 			valid_line_count++;
+// 		}
+// 	}
+// 	// ROS_INFO("找到的线段数量: %d, 长度大于20的线段数量: %d", line_key, valid_line_count);
+// 	for(int i = 0; i <= line_key; i++){
+// 		if(line[i].width > 60){
+// 			line[i].distance = (horizon_depth[line[i].left] + horizon_depth[line[i].right]) / 2;
+// 			// ROS_INFO("Line %d: left = %d, right = %d, width = %d, distance = %.2f", i, line[i].left, line[i].right, line[i].width, line[i].distance);
+// 		}
+// 	}
+// }
+// void find_door() {
+//     ROS_INFO("开始门检测，将连续检测5次");
 
-    int direction_votes[3] = {0}; // 统计 door_direction: 0=中, 1=左, 2=右
-    int valid_detection_count = 0; // 成功检测次数
+//     int direction_votes[3] = {0}; // 统计 door_direction: 0=中, 1=左, 2=右
+//     int valid_detection_count = 0; // 成功检测次数
 
-    // 用于调试：记录每次检测结果
-    int detection_results[5];
-    float distances[5];
+//     // 用于调试：记录每次检测结果
+//     int detection_results[5];
+//     float distances[5];
 
-    // 连续检测5次
-    for (int detection_count = 0; detection_count < 5; detection_count++) {
-        ROS_INFO("第 %d 次检测", detection_count + 1);
+//     // 连续检测5次
+//     for (int detection_count = 0; detection_count < 5; detection_count++) {
+//         ROS_INFO("第 %d 次检测", detection_count + 1);
 
-        find_line();
-        print_line();
+//         find_line();
+//         print_line();
 
-        int first_line = -1, second_line = -1;
+//         int first_line = -1, second_line = -1;
 
-        // 找最长和第二长的线段
-        for (int i = 0; i <= line_key; i++) {
-            if (line[i].width > 60) {
-                if (first_line == -1 || line[i].width > line[first_line].width) {
-                    second_line = first_line;
-                    first_line = i;
-                } else if (second_line == -1 || line[i].width > line[second_line].width) {
-                    second_line = i;
-                }
-            }
-        }
+//         // 找最长和第二长的线段
+//         for (int i = 0; i <= line_key; i++) {
+//             if (line[i].width > 60) {
+//                 if (first_line == -1 || line[i].width > line[first_line].width) {
+//                     second_line = first_line;
+//                     first_line = i;
+//                 } else if (second_line == -1 || line[i].width > line[second_line].width) {
+//                     second_line = i;
+//                 }
+//             }
+//         }
 
-        // 调整顺序：first_line 在左，second_line 在右
-        if (first_line != -1 && second_line != -1) {
-            if (line[first_line].left > line[second_line].left) {
-                int temp = first_line;
-                first_line = second_line;
-                second_line = temp;
-            }
-        }
+//         // 调整顺序：first_line 在左，second_line 在右
+//         if (first_line != -1 && second_line != -1) {
+//             if (line[first_line].left > line[second_line].left) {
+//                 int temp = first_line;
+//                 first_line = second_line;
+//                 second_line = temp;
+//             }
+//         }
 
-        // 初始化门参数
-        left_door_point = -1;
-        right_door_point = -1;
-        door_distance = -1;
-        int current_direction = -1; // 本次检测的方向
+//         // 初始化门参数
+//         left_door_point = -1;
+//         right_door_point = -1;
+//         door_distance = -1;
+//         int current_direction = -1; // 本次检测的方向
 
-        // 分析情况
-        if (first_line != -1 && second_line != -1) {
-            ROS_INFO("两侧均有挡板");
-            if (fabs(line[first_line].distance - line[second_line].distance) < 0.3) {
-                ROS_INFO("平行挡板");
-                left_door_point = line[first_line].right;
-                right_door_point = line[second_line].left;
-                door_distance = (line[first_line].distance + line[second_line].distance) / 2.0;
-            } else {
-                ROS_INFO("非平行挡板");
-                int closer_line = (line[first_line].distance < line[second_line].distance) ? first_line : second_line;
-                if ((line[closer_line].left + line[closer_line].right) / 2 > 320) {
-                    ROS_INFO("单侧挡板在右侧");
-                    right_door_point = line[closer_line].left;
-                    door_distance = line[closer_line].distance;
-                    left_door_point = 0;
-                    for (int i = 0; i < line[closer_line].left; i++) {
-                        if (fabs(horizon_depth[i] - line[closer_line].distance) < 0.1) {
-                            left_door_point = i;
-                            break;
-                        }
-                    }
-                } else {
-                    ROS_INFO("单侧挡板在左侧");
-                    left_door_point = line[closer_line].right;
-                    door_distance = line[closer_line].distance;
-                    right_door_point = 639;
-                    for (int i = 639; i > line[closer_line].right; i--) {
-                        if (fabs(horizon_depth[i] - line[closer_line].distance) < 0.1) {
-                            right_door_point = i;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        else if (first_line != -1) {
-            ROS_INFO("仅有一个挡板");
-            if ((line[first_line].left + line[first_line].right) / 2 > 320) {
-                ROS_INFO("挡板在右侧");
-                right_door_point = line[first_line].left;
-                door_distance = line[first_line].distance;
-                left_door_point = 0;
-                for (int i = 0; i < line[first_line].left; i++) {
-                    if (fabs(horizon_depth[i] - line[first_line].distance) < 0.1) {
-                        left_door_point = i;
-                        break;
-                    }
-                }
-            } else {
-                ROS_INFO("挡板在左侧");
-                left_door_point = line[first_line].right;
-                door_distance = line[first_line].distance;
-                right_door_point = 639;
-                for (int i = 639; i > line[first_line].right; i--) {
-                    if (fabs(horizon_depth[i] - line[first_line].distance) < 0.1) {
-                        right_door_point = i;
-                        break;
-                    }
-                }
-            }
-        }
+//         // 分析情况
+//         if (first_line != -1 && second_line != -1) {
+//             ROS_INFO("两侧均有挡板");
+//             if (fabs(line[first_line].distance - line[second_line].distance) < 0.3) {
+//                 ROS_INFO("平行挡板");
+//                 left_door_point = line[first_line].right;
+//                 right_door_point = line[second_line].left;
+//                 door_distance = (line[first_line].distance + line[second_line].distance) / 2.0;
+//             } else {
+//                 ROS_INFO("非平行挡板");
+//                 int closer_line = (line[first_line].distance < line[second_line].distance) ? first_line : second_line;
+//                 if ((line[closer_line].left + line[closer_line].right) / 2 > 320) {
+//                     ROS_INFO("单侧挡板在右侧");
+//                     right_door_point = line[closer_line].left;
+//                     door_distance = line[closer_line].distance;
+//                     left_door_point = 0;
+//                     for (int i = 0; i < line[closer_line].left; i++) {
+//                         if (fabs(horizon_depth[i] - line[closer_line].distance) < 0.1) {
+//                             left_door_point = i;
+//                             break;
+//                         }
+//                     }
+//                 } else {
+//                     ROS_INFO("单侧挡板在左侧");
+//                     left_door_point = line[closer_line].right;
+//                     door_distance = line[closer_line].distance;
+//                     right_door_point = 639;
+//                     for (int i = 639; i > line[closer_line].right; i--) {
+//                         if (fabs(horizon_depth[i] - line[closer_line].distance) < 0.1) {
+//                             right_door_point = i;
+//                             break;
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//         else if (first_line != -1) {
+//             ROS_INFO("仅有一个挡板");
+//             if ((line[first_line].left + line[first_line].right) / 2 > 320) {
+//                 ROS_INFO("挡板在右侧");
+//                 right_door_point = line[first_line].left;
+//                 door_distance = line[first_line].distance;
+//                 left_door_point = 0;
+//                 for (int i = 0; i < line[first_line].left; i++) {
+//                     if (fabs(horizon_depth[i] - line[first_line].distance) < 0.1) {
+//                         left_door_point = i;
+//                         break;
+//                     }
+//                 }
+//             } else {
+//                 ROS_INFO("挡板在左侧");
+//                 left_door_point = line[first_line].right;
+//                 door_distance = line[first_line].distance;
+//                 right_door_point = 639;
+//                 for (int i = 639; i > line[first_line].right; i--) {
+//                     if (fabs(horizon_depth[i] - line[first_line].distance) < 0.1) {
+//                         right_door_point = i;
+//                         break;
+//                     }
+//                 }
+//             }
+//         }
 
-        // 如果成功提取出门的边界
-        if (left_door_point != -1 && right_door_point != -1 && door_distance > 0) {
-            // ROS_INFO("检测到门: left=%d, right=%d, center=%.1f, distance=%.2f",
-            //          left_door_point, right_door_point,
-            //          (left_door_point + right_door_point) / 2.0, door_distance);
+//         // 如果成功提取出门的边界
+//         if (left_door_point != -1 && right_door_point != -1 && door_distance > 0) {
+//             // ROS_INFO("检测到门: left=%d, right=%d, center=%.1f, distance=%.2f",
+//             //          left_door_point, right_door_point,
+//             //          (left_door_point + right_door_point) / 2.0, door_distance);
 
-            // 计算本次方向
-            double center = (left_door_point + right_door_point) / 2.0;
-            if (center < (320 - door_adjust_range)) {
-                current_direction = 1; // 左
-            } else if (center > (320 + door_adjust_range)) {
-                current_direction = 2; // 右
-            } else {
-                current_direction = 0; // 中
-            }
+//             // 计算本次方向
+//             double center = (left_door_point + right_door_point) / 2.0;
+//             if (center < (320 - door_adjust_range)) {
+//                 current_direction = 1; // 左
+//             } else if (center > (320 + door_adjust_range)) {
+//                 current_direction = 2; // 右
+//             } else {
+//                 current_direction = 0; // 中
+//             }
 
-            // 投票
-            direction_votes[current_direction]++;
-            valid_detection_count++;
+//             // 投票
+//             direction_votes[current_direction]++;
+//             valid_detection_count++;
 
-            // 保存距离用于后续平均（可选）
-            distances[detection_count] = door_distance;
-            detection_results[detection_count] = current_direction;
+//             // 保存距离用于后续平均（可选）
+//             distances[detection_count] = door_distance;
+//             detection_results[detection_count] = current_direction;
 
 
-            geometry_msgs::Point door_points_msg;
-            door_points_msg.x = left_door_point;
-            door_points_msg.y = right_door_point;
-            door_points_msg.z = center;
-            door_points_pub.publish(door_points_msg);
-        } else {
-            // ROS_WARN("第 %d 次检测失败：未找到有效门边界", detection_count + 1);
-            detection_results[detection_count] = -1; // 标记为无效
-        }
+//             geometry_msgs::Point door_points_msg;
+//             door_points_msg.x = left_door_point;
+//             door_points_msg.y = right_door_point;
+//             door_points_msg.z = center;
+//             door_points_pub.publish(door_points_msg);
+//         } else {
+//             // ROS_WARN("第 %d 次检测失败：未找到有效门边界", detection_count + 1);
+//             detection_results[detection_count] = -1; // 标记为无效
+//         }
 
-        // ros::Duration(0.1).sleep(); // 短暂延时避免处理过快
-    }
+//         // ros::Duration(0.1).sleep(); // 短暂延时避免处理过快
+//     }
 
-    // === 所有5次检测完成，开始投票决策 ===
-    ROS_INFO("5次检测完成，开始汇总结果...");
+//     // === 所有5次检测完成，开始投票决策 ===
+//     ROS_INFO("5次检测完成，开始汇总结果...");
 
-    int final_direction = -1;
-    int max_votes = 0;
-    for (int i = 0; i < 3; i++) {
-        ROS_INFO("方向 %d 投票数: %d", i, direction_votes[i]);
-        if (direction_votes[i] > max_votes) {
-            max_votes = direction_votes[i];
-            final_direction = i;
-        }
-    }
+//     int final_direction = -1;
+//     int max_votes = 0;
+//     for (int i = 0; i < 3; i++) {
+//         ROS_INFO("方向 %d 投票数: %d", i, direction_votes[i]);
+//         if (direction_votes[i] > max_votes) {
+//             max_votes = direction_votes[i];
+//             final_direction = i;
+//         }
+//     }
 
-    // 如果没有足够有效检测，尝试使用最后一次有效方向
-    if (valid_detection_count == 0) {
-		door_direction = 0; // 默认中间
-        ROS_ERROR("5次检测均未成功，无法确定门方向！");
-        return;
-    }
-    // 设置最终 door_direction
-    door_direction = final_direction;
+//     // 如果没有足够有效检测，尝试使用最后一次有效方向
+//     if (valid_detection_count == 0) {
+// 		door_direction = 0; // 默认中间
+//         ROS_ERROR("5次检测均未成功，无法确定门方向！");
+//         return;
+//     }
+//     // 设置最终 door_direction
+//     door_direction = final_direction;
 
-    // 计算平均距离：仅使用方向与最终决策一致的检测
-    double avg_distance = 0.0;
-    int consistent_count = 0;
+//     // 计算平均距离：仅使用方向与最终决策一致的检测
+//     double avg_distance = 0.0;
+//     int consistent_count = 0;
 
-    for (int i = 0; i < 5; i++) {
-        // 只有方向匹配最终决策，且该次检测有效
-        if (detection_results[i] != -1 && detection_results[i] == final_direction) {
-            avg_distance += distances[i];
-            consistent_count++;
-        }
-    }
+//     for (int i = 0; i < 5; i++) {
+//         // 只有方向匹配最终决策，且该次检测有效
+//         if (detection_results[i] != -1 && detection_results[i] == final_direction) {
+//             avg_distance += distances[i];
+//             consistent_count++;
+//         }
+//     }
 
-    if (consistent_count > 0) {
-        avg_distance /= consistent_count;
-        door_distance = avg_distance; // 更新门的距离
-        ROS_INFO("使用 %d 次方向一致的检测，平均距离: %.2f 米", consistent_count, door_distance);
-    } else {
-        // 极端情况：没有一次检测的方向与最终投票结果一致（理论上不太可能）
-        door_distance = 1.0; // 设为默认值
-    }
+//     if (consistent_count > 0) {
+//         avg_distance /= consistent_count;
+//         door_distance = avg_distance; // 更新门的距离
+//         ROS_INFO("使用 %d 次方向一致的检测，平均距离: %.2f 米", consistent_count, door_distance);
+//     } else {
+//         // 极端情况：没有一次检测的方向与最终投票结果一致（理论上不太可能）
+//         door_distance = 1.0; // 设为默认值
+//     }
 
-    // 输出最终决策
-    switch (door_direction) {
-        case 0:
-            ROS_INFO("最终决策：门在中间，距离: %.2f 米", avg_distance);
-            break;
-        case 1:
-            ROS_INFO("最终决策：门在左侧，距离: %.2f 米", avg_distance);
-            break;
-        case 2:
-            ROS_INFO("最终决策：门在右侧，距离: %.2f 米", avg_distance);
-            break;
-    }
-}
+//     // 输出最终决策
+//     switch (door_direction) {
+//         case 0:
+//             ROS_INFO("最终决策：门在中间，距离: %.2f 米", avg_distance);
+//             break;
+//         case 1:
+//             ROS_INFO("最终决策：门在左侧，距离: %.2f 米", avg_distance);
+//             break;
+//         case 2:
+//             ROS_INFO("最终决策：门在右侧，距离: %.2f 米", avg_distance);
+//             break;
+//     }
+// }
 
 /************************************************************************
 函数功能14:降落
@@ -1637,12 +1640,27 @@ float door_thred = 0.2;
 bool start_check_door_flag = false;
 bool finish_check_door_flag = false;
 
+uint32_t last_door_seq = 0;
+
+
 void door_lidar_cb(const geometry_msgs::PointStamped::ConstPtr &msg)
 {
-	if(!start_check_door_flag) return;
 	door_pos = *msg;
+	if(!start_check_door_flag)
+	{
+		last_door_seq = door_pos.header.seq;
+		check_num = 0;
+		sum_door_x = 0;
+		sum_door_y = 0;
+		sum_door_z = 0;
+		avg_door_x = 0;
+		avg_door_y = 0;
+		avg_door_z = 0;
+		return;
+	} 
 
 	if(door_pos.header.seq == door_seq) return;
+	if(door_pos.header.seq < last_door_seq) return; // 避免seq回绕导致的错误
 
 	door_seq = door_pos.header.seq;
 	sum_door_x += door_pos.point.x;
@@ -1669,11 +1687,35 @@ void door_lidar_cb(const geometry_msgs::PointStamped::ConstPtr &msg)
 		door_x = avg_door_x;
 		door_y = avg_door_y;
 		door_z = avg_door_z;
+		check_num = 0;
+		sum_door_x = 0;
+		sum_door_y = 0;
+		sum_door_z = 0;
+		avg_door_x = 0;
+		avg_door_y = 0;
+		avg_door_z = 0;
 		finish_check_door_flag = true;
 		start_check_door_flag = false;
 	}
 	ROS_INFO("door_pos_x:%f,door_pos_y:%f,door_pos_z:%f",door_pos.point.x,door_pos.point.y,door_pos.point.z);
 }
 
+ros::Time last_time;
+bool lib_time_init_flag = true;  // 记录是否为第一次触发
+bool lib_time_record_func(float duration, ros::Time current_time) {
+      // 静态变量，记录上次触发时间
+	if(lib_time_init_flag)
+	{
+		last_time = current_time;
+		lib_time_init_flag = false; // 只在第一次调用时初始化
+	}
 
+    ros::Duration elapsed = current_time - last_time;
 
+    // 如果已经过去超过 duration 秒，返回 true 并更新时间
+    if (elapsed.toSec() >= duration) {
+		lib_time_init_flag = true;
+		return true;
+    }
+    return false;
+}

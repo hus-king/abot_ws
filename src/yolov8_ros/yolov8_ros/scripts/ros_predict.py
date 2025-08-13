@@ -25,7 +25,7 @@ class YOLODetector:
         rospy.init_node('yolo_detector', anonymous=True)
         
         # 获取模型路径参数
-        weight_path = rospy.get_param('~weight_path', '/home/nx/abot_ws/src/yolov8_ros/yolov8_ros/weights/gjs.pt')
+        weight_path = rospy.get_param('~weight_path', '/home/phoenixtech/abot_ws/src/yolov8_ros/yolov8_ros/weights/gjs.pt')
         
         # 获取置信度参数
         conf = rospy.get_param('~conf', 0.5)

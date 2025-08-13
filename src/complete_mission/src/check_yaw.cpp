@@ -70,7 +70,6 @@ int main(int argc, char **argv)
   
   ros::Subscriber yolo_ros_box_sub = nh.subscribe<yolov8_ros_msgs::BoundingBoxes>("/object_position", 1, yolo_ros_cb);
   
-  ros::Subscriber depth_sub = nh.subscribe<camera_processor::PointDepth>("/camera_processor/depth/points", 1, depth_image_cb);
 
   // 设置话题发布频率，需要大于2Hz，飞控连接有500ms的心跳包
   ros::Rate rate(20);

@@ -30,15 +30,12 @@ find_package(catkin REQUIRED COMPONENTS
   tf2
   tf2_ros
   tf2_sensor_msgs
-  circle_detector
   yolov8_ros
   image_transport
-  camera_processor
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-find_package(circle_detector REQUIRED)
 find_package(yolov8_ros REQUIRED)
 find_package(Eigen3 REQUIRED)
 
@@ -230,73 +227,51 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 link_directories(
-  lib
+  
   ${catkin_LIB_DIRS}
 )
 
 # add_executable(complete_mission src/complete_mission.cpp)
-# target_link_libraries(complete_mission ${catkin_LIBRARIES} lib)
+# target_link_libraries(complete_mission ${catkin_LIBRARIES} )
 
 # add_executable(complete_mission_ego src/complete_mission_ego.cpp)
-# target_link_libraries(complete_mission_ego ${catkin_LIBRARIES} lib)
+# target_link_libraries(complete_mission_ego ${catkin_LIBRARIES} )
 
 # add_executable(complete_mission_all src/complete_mission_all.cpp)
-# target_link_libraries(complete_mission_all ${catkin_LIBRARIES} lib)
+# target_link_libraries(complete_mission_all ${catkin_LIBRARIES} )
 
-add_executable(complete_mission src/ego_planner.cpp)
-target_link_libraries(complete_mission ${catkin_LIBRARIES} lib)
+# add_executable(complete_mission src/ego_planner.cpp)
+# target_link_libraries(complete_mission ${catkin_LIBRARIES} )
 
-add_executable(ego_planner_collision src/ego_planner_collision.cpp)
-target_link_libraries(ego_planner_collision ${catkin_LIBRARIES} lib)
+# add_executable(ego_planner_collision src/ego_planner_collision.cpp)
+# target_link_libraries(ego_planner_collision ${catkin_LIBRARIES} )
 
 add_executable(gjs src/gjs.cpp)
-target_link_libraries(gjs ${catkin_LIBRARIES} lib Eigen3::Eigen)
-
-add_executable(depth_door src/depth_door.cpp)
-target_link_libraries(depth_door ${catkin_LIBRARIES} lib Eigen3::Eigen)
-
-add_executable(cross_door src/cross_door.cpp)
-target_link_libraries(cross_door ${catkin_LIBRARIES} lib Eigen3::Eigen)
+target_link_libraries(gjs ${catkin_LIBRARIES}  Eigen3::Eigen)
 
 
-add_executable(check_land src/check_land.cpp)
-target_link_libraries(check_land ${catkin_LIBRARIES} lib Eigen3::Eigen)
-
-add_executable(cross_door_pro src/cross_door_pro.cpp)
-target_link_libraries(cross_door_pro ${catkin_LIBRARIES} lib Eigen3::Eigen)
 
 add_executable(test_ego src/test_ego.cpp)
-target_link_libraries(test_ego ${catkin_LIBRARIES} lib Eigen3::Eigen)
+target_link_libraries(test_ego ${catkin_LIBRARIES}  Eigen3::Eigen)
 
 add_executable(check_catpult src/check_catpult.cpp)
-target_link_libraries(check_catpult ${catkin_LIBRARIES} lib Eigen3::Eigen)
+target_link_libraries(check_catpult ${catkin_LIBRARIES}  Eigen3::Eigen)
 
 add_executable(check_yaw src/check_yaw.cpp)
-target_link_libraries(check_yaw ${catkin_LIBRARIES} lib Eigen3::Eigen)
-
-add_executable(simple_ego src/simple_ego.cpp)
-target_link_libraries(simple_ego ${catkin_LIBRARIES} lib Eigen3::Eigen)
+target_link_libraries(check_yaw ${catkin_LIBRARIES}  Eigen3::Eigen)
 
 
-add_executable(video_test_node src/video_test.cpp)
-target_link_libraries(video_test_node ${catkin_LIBRARIES} lib)
-
-add_executable(way_point src/way_point.cpp)
-target_link_libraries(way_point ${catkin_LIBRARIES} lib)
 
 add_executable(laser_to_worldframe src/laser_to_worldframe.cpp)
 target_link_libraries(laser_to_worldframe ${catkin_LIBRARIES})
 
 
 add_executable(hover src/hover.cpp)
-target_link_libraries(hover ${catkin_LIBRARIES} lib )
+target_link_libraries(hover ${catkin_LIBRARIES}  )
 
-
-add_executable(IPC_test src/IPC_test.cpp)
-target_link_libraries(IPC_test ${catkin_LIBRARIES})
 
 # add_executable(collision_avoidance src/collision_avoidance.cpp)
-# target_link_libraries(collision_avoidance ${catkin_LIBRARIES} lib)
+# target_link_libraries(collision_avoidance ${catkin_LIBRARIES} )
 
 # add_executable(ros_navigation src/ros_navigation.cpp)
-# target_link_libraries(ros_navigation ${catkin_LIBRARIES} lib)
+# target_link_libraries(ros_navigation ${catkin_LIBRARIES} )

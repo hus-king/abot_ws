@@ -7,7 +7,7 @@
     <param name="image_topic" value="/camera/image_raw"/>
     <param name="pub_topic" value="/object_position"/>
     <param name="use_cpu" value="false" />
-    <param name="weight_path" value="/home/jetson/abot_ws/src/yolov8_ros/yolov8_ros/weights/gjs.pt"/>
+    <param name="weight_path" value="/home/phoenixtech/abot_ws/src/yolov8_ros/yolov8_ros/weights/gjs.pt"/>
     <param name="visualize" value="$(arg visualize)"/>
     <param name="enhanced" value="true"/>
     <param name="image_pub_topic" value="/yolov8/detection_image"/>
