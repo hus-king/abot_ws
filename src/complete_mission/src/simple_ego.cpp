@@ -2,7 +2,7 @@
 #include <gjs.h>
 
 // 全局变量定义
-float simple_target_x = 4.7;
+float simple_target_x = 4.0;
 float simple_target_y = 0;
 int mission_num = 0;        // 任务标志位
 int tmp_marker_id = 1;      // 临时标记ID
@@ -59,13 +59,6 @@ void print_param()
   std::cout << "catapult_shred: " << catapult_shred << std::endl;
   std::cout << "camera_height: " << camera_height << std::endl;
   std::cout << "camera_offset_body_x: " << camera_offset_body_x << std::endl;
-  std::cout << "=== 穿门参数 ===" << std::endl;
-  std::cout << "if_realsence: " << if_realsence << std::endl;
-  if(if_realsence == 1) cout << "使用RealSense相机穿门" << std::endl;
-  else cout << "使用3D雷达穿门" << std::endl;
-  std::cout << "line_shred: " << line_shred << std::endl;
-  std::cout << "door_adjust_range: " << door_adjust_range << std::endl;
-  cout << "range = " << 320 - door_adjust_range << " to " << 320 + door_adjust_range << endl;
 }
 
 
@@ -107,7 +100,6 @@ int main(int argc, char **argv)
 
   ros::Subscriber yolo_ros_box_sub = nh.subscribe<yolov8_ros_msgs::BoundingBoxes>("/object_position", 1, yolo_ros_cb);
   
-  ros::Subscriber depth_sub = nh.subscribe<camera_processor::PointDepth>("/camera_processor/depth/points", 1, depth_image_cb);
   ros::Subscriber door_lidar_sub = nh.subscribe<geometry_msgs::PointStamped>("/door_center",1,door_lidar_cb); //3D雷达
   door_points_pub = nh.advertise<geometry_msgs::Point>("/door_points", 10);  //深度相机
 
@@ -148,11 +140,6 @@ int main(int argc, char **argv)
 
   nh.param<float>("camera_height", camera_height, 0);
   nh.param<float>("camera_offset_body_x", camera_offset_body_x, 0.0);
-  nh.param<float>("if_debug", if_debug, 0);
-  nh.param<float>("line_shred", line_shred, 0.1);
-  nh.param<int>("door_adjust_range", door_adjust_range, 70);
-
-  nh.param<int>("if_realsence", if_realsence, 0);
 
   target_array_x.push_back(target1_x);
   target_array_y.push_back(target1_y);
@@ -165,18 +152,21 @@ int main(int argc, char **argv)
 
 
   print_param();
+  ros::spinOnce();
+  rate.sleep();
+  while(local_pos.pose.pose.position.z == 0){
+  ros::spinOnce();
+  rate.sleep();
+  }
+  ROS_WARN("%f",init_position_z_take_off);
 
-  
   int choice = 0;
   std::cout << "1 to go on , else to quit" << std::endl;
+  ros::spinOnce();
+  rate.sleep();
   std::cin >> choice;
   if (choice != 1)
     return 0;
-
-    init_position_x_take_off = local_pos.pose.pose.position.x;
-		init_position_y_take_off = local_pos.pose.pose.position.y;
-
-
   // 等待连接到飞控
   while (ros::ok() && !current_state.connected)
   {
@@ -354,7 +344,7 @@ int main(int argc, char **argv)
         }
         break;
       
-      case 100: // 在起飞点降落
+      case 100:
         arm_cmd.request.value = false;
         if(mission_pos_cruise(simple_target_x, simple_target_y, -0.05, now_yaw, err_max))
         {

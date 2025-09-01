@@ -246,6 +246,9 @@ link_directories(
 # add_executable(ego_planner_collision src/ego_planner_collision.cpp)
 # target_link_libraries(ego_planner_collision ${catkin_LIBRARIES} )
 
+add_executable(simple_ego src/simple_ego.cpp)
+target_link_libraries(simple_ego ${catkin_LIBRARIES}  Eigen3::Eigen)
+
 add_executable(gjs src/gjs.cpp)
 target_link_libraries(gjs ${catkin_LIBRARIES}  Eigen3::Eigen)
 

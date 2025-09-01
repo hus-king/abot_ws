@@ -29,7 +29,16 @@ tmux new-window -t ros_session:1 -n camera_detection
 tmux send-keys -t ros_session:1 'sleep 5;source /home/phoenixtech/abot_ws/devel/setup.zsh; rosrun web_video_server web_video_server' C-m
 
 tmux split-window -h -t ros_session:1
-tmux send-keys -t ros_session:1.1 'sleep 4; source ~/yzk_ws/devel/setup.bash; roslaunch door_detector door_detector.launch' C-m
+tmux send-keys -t ros_session:1.1 'sleep 4; source ~/door_ws/devel/setup.zsh; roslaunch door_detector door_detector.launch' C-m
+
+tmux split-window -h -t ros_session:1.1
+tmux send-keys -t ros_session:1.2 'sleep 4; rosrun rosserial_python serial_node.py _port:=/dev/ttyUSB0 _baud:=57600' C-m
+
+tmux split-window -h -t ros_session:1.2
+tmux send-keys -t ros_session:1.3 'sleep 4; cd /home/phoenixtech/uav_ws/src/uav_code/servo; python servo_test.py' C-m
+
+tmux split-window -h -t ros_session:1.2
+tmux send-keys -t ros_session:1.3 'sleep 4; cd /home/phoenixtech/uav_ws/src/uav_code/servo; python servo_ros.py' C-m
 
 tmux select-layout -t ros_session:1 tiled
 

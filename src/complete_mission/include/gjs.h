@@ -28,11 +28,11 @@
 using namespace std;
 
 
-#define ALTITUDE 0.7
-#define VIEW_ALTITUDE 1.6
-#define DOOR_ALTITUDE 0.3
-#define LANDING_ALTITUDE -0.15
-#define CATAPULT_ALTITUDE 0.05
+#define ALTITUDE 0.8
+#define VIEW_ALTITUDE 1.7
+#define DOOR_ALTITUDE 0.4
+#define LANDING_ALTITUDE 0.20
+#define CATAPULT_ALTITUDE 0.30
 #define QR_ALTITUDE 0.40
 #define RING_HEIGHT 1.50
 #define TANK_ALTITUDE 1.9
@@ -1658,7 +1658,8 @@ void door_lidar_cb(const geometry_msgs::PointStamped::ConstPtr &msg)
 		avg_door_z = 0;
 		return;
 	} 
-
+	
+	if(door_pos.point.y > local_pos.pose.pose.position.y) return; //门在身后
 	if(door_pos.header.seq == door_seq) return;
 	if(door_pos.header.seq < last_door_seq) return; // 避免seq回绕导致的错误
 
