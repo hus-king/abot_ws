@@ -1458,8 +1458,8 @@ void PI_attitude_control()
 {                                                      
 	setpoint_raw.coordinate_frame = 1;
 	setpoint_raw.type_mask = 0b101111100011; // vx vy z yaw
-	setpoint_raw.velocity.x = 0.85 * ego_sub.velocity.x + (ego_sub.position.x - local_pos.pose.pose.position.x) * 1;
-	setpoint_raw.velocity.y = 0.85 * ego_sub.velocity.y + (ego_sub.position.y - local_pos.pose.pose.position.y) * 1;
+	setpoint_raw.velocity.x = 0.55 * ego_sub.velocity.x + (ego_sub.position.x - local_pos.pose.pose.position.x) * 1.1;
+	setpoint_raw.velocity.y = 0.55 * ego_sub.velocity.y + (ego_sub.position.y - local_pos.pose.pose.position.y) * 1.1;
 	if(now_mode == 1)//穿门模式
 	{
 		setpoint_raw.position.z = DOOR_ALTITUDE;
@@ -1468,11 +1468,9 @@ void PI_attitude_control()
 	setpoint_raw.yaw = ego_sub.yaw;
 
 	ROS_INFO("ego: vel_x = %.2f, vel_y = %.2f, z = %.2f, yaw = %.2f", ego_sub.velocity.x, ego_sub.velocity.y, ego_sub.position.z, ego_sub.yaw);
-	ROS_INFO("ego: x = %.2f, y = %.2f, z = %.2f, yaw = %.2f", ego_sub.position.x, ego_sub.position.y, ego_sub.position.z, ego_sub.yaw);
+	ROS_INFO("ego_sub.position: x = %.2f, y = %.2f", ego_sub.position.x, ego_sub.position.y);
 	ROS_INFO("已触发控制器: vel_x = %.2f, vel_y = %.2f, z = %.2f, yaw = %.2f", setpoint_raw.velocity.x, setpoint_raw.velocity.y, setpoint_raw.position.z, setpoint_raw.yaw);
-	ROS_INFO("now_yaw: %.2f", square_yaw_cb * 180.0 / M_PI);
 	ROS_INFO("ego_target_x = %.2f, ego_target_y = %.2f", ego_now_x, ego_now_y);
-	ROS_INFO("now_mode = %d", now_mode);
 }
 
 /************************************************************************

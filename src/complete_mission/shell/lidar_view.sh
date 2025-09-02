@@ -5,11 +5,15 @@
 tmux new-session -d -s view_session -n lidar_view
 
 # Pane 0: roscore
-tmux send-keys -t view_session:0 'source /home/phoenixtech/abot_ws/devel/setup.zsh; rosrun complete_mission laser_to_worldframe' C-m
+tmux send-keys -t view_session:0 'source /home/phoenixtech/abot_ws/devel/setup.zsh; roslaunch complete_mission map_accumulator.launch' C-m
 
 # Pane 1: beginning.launch
 tmux split-window -h -t view_session:0
-tmux send-keys -t view_session:0.1 'sleep 3; source /home/phoenixtech/abot_ws/devel/setup.zsh; roslaunch complete_mission ego_planner_mid360.launch' C-m
+tmux send-keys -t view_session:0.1 'sleep 3; source /home/phoenixtech/abot_ws/devel/setup.zsh; rosrun complete_mission laser_to_worldframe' C-m
+
+# Pane 1: beginning.launch
+tmux split-window -h -t view_session:0.1
+tmux send-keys -t view_session:0.2 'sleep 3; source /home/phoenixtech/abot_ws/devel/setup.zsh; roslaunch complete_mission ego_planner_mid360.launch' C-m
 
 # 自动整理布局为平铺
 tmux select-layout -t view_session:0 tiled

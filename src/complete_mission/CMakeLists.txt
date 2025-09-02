@@ -32,6 +32,8 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_sensor_msgs
   yolov8_ros
   image_transport
+  pcl_ros
+  pcl_conversions
 )
 
 ## System dependencies are found with CMake's conventions
@@ -140,6 +142,7 @@ catkin_package(
 include_directories(
  include
   ${catkin_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -227,8 +230,9 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 link_directories(
-  
   ${catkin_LIB_DIRS}
+  ${Boost_LIBRARIES}
+  ${PCL_LIBRARIES}
 )
 
 # add_executable(complete_mission src/complete_mission.cpp)
@@ -271,6 +275,9 @@ target_link_libraries(laser_to_worldframe ${catkin_LIBRARIES})
 
 add_executable(hover src/hover.cpp)
 target_link_libraries(hover ${catkin_LIBRARIES}  )
+
+add_executable(map_accumulator src/map_accumulator.cpp)
+target_link_libraries(map_accumulator ${catkin_LIBRARIES}   Eigen3::Eigen )
 
 
 # add_executable(collision_avoidance src/collision_avoidance.cpp)

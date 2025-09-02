@@ -124,6 +124,7 @@ int main(int argc, char **argv)
   nh.param<float>("target7_y", target7_y, 0);
   nh.param<float>("target8_x", target8_x, 0);
   nh.param<float>("target8_y", target8_y, 0);
+  nh.param<float>("if_debug", if_debug, 0);
 
   nh.param<float>("track_distance", track_distance, 0); 
   nh.param<float>("err_max", err_max, 0);
@@ -336,22 +337,59 @@ int main(int argc, char **argv)
             if(lib_time_record_func(0.5, ros::Time::now()))
             {
                 now_yaw = yaw;
-                mission_num = 100; //
+                mission_num = 10; //
                 ego_check = false; // 重置ego_check状态
                 last_request = ros::Time::now();
             }
           }
         }
         break;
+
+
       
-      case 100:
-        arm_cmd.request.value = false;
-        if(mission_pos_cruise(simple_target_x, simple_target_y, -0.05, now_yaw, err_max))
+      // case 100:
+      //   arm_cmd.request.value = false;
+      //   if(mission_pos_cruise(simple_target_x, simple_target_y, -0.05, now_yaw, err_max))
+      //   {
+      //     if (lib_time_record_func(5.0, ros::Time::now()))
+      //     {
+      //       mission_num = -1; // 任务结束
+      //     }
+      //   }
+      //   break;
+
+      case 10: // 降落点悬停
+        if(mission_pos_cruise(simple_target_x, simple_target_y, ALTITUDE, 0, err_max))
         {
-          if (lib_time_record_func(5.0, ros::Time::now()))
+          if(lib_time_record_func(3.0, ros::Time::now()))
+          {
+            mission_num = 100;
+            now_yaw = yaw;
+            last_request = ros::Time::now();
+          } 
+        }
+        else if(ros::Time::now() - last_request >= ros::Duration(10.0))
+        {
+          mission_num = 100;
+          now_yaw = yaw;
+          last_request = ros::Time::now();
+          lib_time_init_flag = true;
+        }
+        break;
+
+      
+      case 100: // 在降落点降落
+        // arm_cmd.request.value = false;
+        if(mission_pos_cruise(simple_target_x, simple_target_y, 0.2, 0, err_max))
+        {
+          if(lib_time_record_func(3.0, ros::Time::now()))
           {
             mission_num = -1; // 任务结束
           }
+        }
+        else if(ros::Time::now() - last_request >= ros::Duration(5.0)){
+          mission_num = -1; // 任务结束
+          lib_time_init_flag = true;
         }
         break;
     }

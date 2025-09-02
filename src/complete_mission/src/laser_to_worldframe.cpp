@@ -41,7 +41,9 @@ int main(int argc, char **argv)
   ros::NodeHandle nh;
 
   // 订阅激光雷达的点云数据
-  ros::Subscriber sub = nh.subscribe("/cloud_registered", 10, pointCloudCallback);
+  // ros::Subscriber sub = nh.subscribe("/cloud_registered", 10, pointCloudCallback);
+  
+  ros::Subscriber sub = nh.subscribe("/map_accumulator/accumulated_map", 10, pointCloudCallback);
 
   // 创建发布器，用于发布转换后的点云数据
   pub = nh.advertise<sensor_msgs::PointCloud2>("/cloud_registered_world", 10);

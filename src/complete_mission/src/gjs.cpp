@@ -928,7 +928,7 @@ int main(int argc, char **argv)
         }
         break;
 
-      case 10: // 前往降落点降落
+      case 10: // 降落点悬停
         if(mission_pos_cruise(target7_x, target7_y, DOOR_ALTITUDE, -1.57, err_max))
         {
           if(lib_time_record_func(3.0, ros::Time::now()))
@@ -948,7 +948,7 @@ int main(int argc, char **argv)
         break;
 
       
-      case 100: // 在起飞点降落
+      case 100: // 在降落点降落
         arm_cmd.request.value = false;
         if(mission_pos_cruise(target7_x, target7_y, LANDING_ALTITUDE, now_yaw, err_max))
         {
