@@ -1,5 +1,6 @@
 #include "plan_env/grid_map.h"
 #include <std_msgs/Int32.h>
+#include <unordered_map>
 int map_ego_mode;
 double x_size, y_size, z_size = 1.0;
 double obstacles_inflation__normal;
@@ -8,6 +9,7 @@ double map_size_z__normal;
 double map_size_z__door;
 double ground_height__normal;
 double ground_height__door;
+double floor_z, ceiling_z;//用于修改z膨胀逻辑
 // #define current_img_ md_.depth_image_[image_cnt_ & 1]
 // #define last_img_ md_.depth_image_[!(image_cnt_ & 1)]
 ros::Timer ego_mode_timer; // 新增：定时器
@@ -17,22 +19,22 @@ ros::Subscriber map_ego_mode_sub; // 新增：订阅器
 void GridMap::map_ego_mode_callback(const std_msgs::Int32::ConstPtr &msg)
 {
     map_ego_mode = msg->data;
-    ROS_INFO("[GridMap] Received ego_planner_mode update: %d", map_ego_mode);
+    // ROS_INFO("[GridMap] Received ego_planner_mode update: %d", map_ego_mode);
     //选择合适的obstacles_inflation，map_size_z，ground_height）
     //赋值到mp_.obstacles_inflation_,z_size,mp_.ground_height_)
     if(map_ego_mode == 0){
         mp_.obstacles_inflation_ = obstacles_inflation__normal;
         z_size = map_size_z__normal;
         mp_.ground_height_ = ground_height__normal;
-        ROS_INFO("[GridMap] Using normal mode parameters: obstacles_inflation = %f, map_size_z = %f, ground_height = %f",
-                  mp_.obstacles_inflation_, z_size, mp_.ground_height_);
+        // ROS_INFO("[GridMap] Using normal mode parameters: obstacles_inflation = %f, map_size_z = %f, ground_height = %f",
+        //           mp_.obstacles_inflation_, z_size, mp_.ground_height_);
     }
     else if(map_ego_mode == 1){
         mp_.obstacles_inflation_ = obstacles_inflation__door;
         z_size = map_size_z__door;
         mp_.ground_height_ = ground_height__door;
-        ROS_INFO("[GridMap] Using door mode parameters: obstacles_inflation = %f, map_size_z = %f, ground_height = %f",
-                 mp_.obstacles_inflation_, z_size, mp_.ground_height_);
+        // ROS_INFO("[GridMap] Using door mode parameters: obstacles_inflation = %f, map_size_z = %f, ground_height = %f",
+        //          mp_.obstacles_inflation_, z_size, mp_.ground_height_);
     }
 }
 void GridMap::initMap(ros::NodeHandle &nh)
@@ -40,15 +42,15 @@ void GridMap::initMap(ros::NodeHandle &nh)
   node_ = nh;
 
   /* get parameter */
-  
-  
+
+
   // 初始化map_ego_mode，首先尝试从参数服务器读取默认值
   nh.param("/ego_planner_mode", map_ego_mode, 0);
-  
+
   // 订阅ego_planner_mode话题进行实时更新
   map_ego_mode_sub = nh.subscribe("/ego_planner_mode", 0, &GridMap::map_ego_mode_callback,this);
   ROS_INFO("[GridMap] Subscribed to /ego_planner_mode topic for real-time updates");
-  
+
   node_.param("grid_map/resolution", mp_.resolution_, -1.0);
 
   node_.param("grid_map/map_size_x", x_size, -1.0);
@@ -68,8 +70,9 @@ void GridMap::initMap(ros::NodeHandle &nh)
   node_.param("grid_map/local_update_range_x", mp_.local_update_range_(0), -1.0);
   node_.param("grid_map/local_update_range_y", mp_.local_update_range_(1), -1.0);
   node_.param("grid_map/local_update_range_z", mp_.local_update_range_(2), -1.0);
-  
-  
+
+  node_.param("grid_map/floor_z", floor_z, 0.3);     // 默认值 0.3m
+  node_.param("grid_map/ceiling_z", ceiling_z, 3.0); // 默认值 3.0m
 
   node_.param("grid_map/fx", mp_.fx_, -1.0);
   node_.param("grid_map/fy", mp_.fy_, -1.0);
@@ -102,7 +105,7 @@ void GridMap::initMap(ros::NodeHandle &nh)
 
   node_.param("grid_map/frame_id", mp_.frame_id_, string("world"));
   node_.param("grid_map/local_map_margin", mp_.local_map_margin_, 1);
-  
+
 
 
 
@@ -610,13 +613,11 @@ void GridMap::clearAndInflateLocalMap()
   for (int x = min_cut_m(0); x <= max_cut_m(0); ++x)
     for (int y = min_cut_m(1); y <= max_cut_m(1); ++y)
     {
-
       for (int z = min_cut_m(2); z < min_cut(2); ++z)
       {
         int idx = toAddress(x, y, z);
         md_.occupancy_buffer_[idx] = mp_.clamp_min_log_ - mp_.unknown_flag_;
       }
-
       for (int z = max_cut(2) + 1; z <= max_cut_m(2); ++z)
       {
         int idx = toAddress(x, y, z);
@@ -627,13 +628,11 @@ void GridMap::clearAndInflateLocalMap()
   for (int z = min_cut_m(2); z <= max_cut_m(2); ++z)
     for (int x = min_cut_m(0); x <= max_cut_m(0); ++x)
     {
-
       for (int y = min_cut_m(1); y < min_cut(1); ++y)
       {
         int idx = toAddress(x, y, z);
         md_.occupancy_buffer_[idx] = mp_.clamp_min_log_ - mp_.unknown_flag_;
       }
-
       for (int y = max_cut(1) + 1; y <= max_cut_m(1); ++y)
       {
         int idx = toAddress(x, y, z);
@@ -644,13 +643,11 @@ void GridMap::clearAndInflateLocalMap()
   for (int y = min_cut_m(1); y <= max_cut_m(1); ++y)
     for (int z = min_cut_m(2); z <= max_cut_m(2); ++z)
     {
-
       for (int x = min_cut_m(0); x < min_cut(0); ++x)
       {
         int idx = toAddress(x, y, z);
         md_.occupancy_buffer_[idx] = mp_.clamp_min_log_ - mp_.unknown_flag_;
       }
-
       for (int x = max_cut(0) + 1; x <= max_cut_m(0); ++x)
       {
         int idx = toAddress(x, y, z);
@@ -836,7 +833,7 @@ void GridMap::cloudCallback(const sensor_msgs::PointCloud2ConstPtr &img)
   Eigen::Vector3d p3d, p3d_inf;
   
   int inf_step = ceil(mp_.obstacles_inflation_ / mp_.resolution_);
-  ROS_INFO("[Grid:inf_step]inflation2 step: %f", mp_.obstacles_inflation_);
+  // ROS_INFO("[Grid:inf_step]inflation2 step: %f", mp_.obstacles_inflation_);
   int inf_step_z = 1;
 
   double max_x, max_y, max_z, min_x, min_y, min_z;
@@ -907,6 +904,135 @@ void GridMap::cloudCallback(const sensor_msgs::PointCloud2ConstPtr &img)
 
   boundIndex(md_.local_bound_min_);
   boundIndex(md_.local_bound_max_);
+
+  // // ==================== 新增：列式垂直膨胀（Column-wise Vertical Inflation）====================
+  // // 读取 floor_z 和 ceiling_z 参数
+  // double floor_z_param, ceiling_z_param;
+  // node_.param("grid_map/floor_z", floor_z_param, 0.3);     // 默认 0.3m
+  // node_.param("grid_map/ceiling_z", ceiling_z_param, 3.0); // 默认 3.0m
+  // ROS_INFO_THROTTLE(5.0, "Using column-wise vertical inflation, floor_z = %f, ceiling_z = %f", floor_z_param, ceiling_z_param);
+
+  // // 转换为体素索引
+  // int floor_z_id = (floor_z_param - mp_.map_origin_(2)) * mp_.resolution_inv_;
+  // int ceiling_z_id = (ceiling_z_param - mp_.map_origin_(2)) * mp_.resolution_inv_;
+
+  // // 限制在局部边界内
+  // floor_z_id = std::max(floor_z_id, md_.local_bound_min_(2));
+  // ceiling_z_id = std::min(ceiling_z_id, md_.local_bound_max_(2));
+
+  // // 安全检查：确保区间有效
+  // if (floor_z_id >= ceiling_z_id)
+  // {
+  //   ROS_WARN_THROTTLE(1.0, "[GridMap] floor_z (%.2f) >= ceiling_z (%.2f). Skip column inflation.",
+  //                     floor_z_param, ceiling_z_param);
+  // }
+  // else
+  // {
+  //   int column_count = 0;
+  //   // 遍历局部边界内的所有 (x, y) 列
+  //   for (int x = md_.local_bound_min_(0); x <= md_.local_bound_max_(0); ++x)
+  //   {
+  //     for (int y = md_.local_bound_min_(1); y <= md_.local_bound_max_(1); ++y)
+  //     {
+  //       bool has_obstacle_in_column = false;
+
+  //       // 检查该列在 [floor_z_id, ceiling_z_id] 区间内是否有占据体素
+  //       for (int z = floor_z_id; z <= 2.0; ++z)
+  //       {
+  //         if (md_.occupancy_buffer_inflate_[toAddress(x, y, z)] == 1)
+  //         {
+  //           has_obstacle_in_column = true;
+  //           break;
+  //         }
+  //       }
+
+  //       // 如果该列有障碍，则将整个区间全部设为占据
+  //       if (has_obstacle_in_column)
+  //       {
+  //         for (int z = floor_z_id; z <= ceiling_z_id; ++z)
+  //         {
+  //           md_.occupancy_buffer_inflate_[toAddress(x, y, z)] = 1;
+  //         }
+  //         column_count++;
+  //       }
+  //     }
+  //   }
+
+  //   // ROS_INFO_THROTTLE(2.0, "[GridMap] Column inflation: %d columns (x,y) fully inflated between z=[%.2f, %.2f]m",
+  //   //                   column_count, floor_z_param, ceiling_z_param);
+  // }
+  // // ==================== 列式膨胀结束 =================
+
+  // ==================== 改进版：带密度检测的列式垂直膨胀 ====================
+double floor_z_param, ceiling_z_param;
+node_.param("grid_map/floor_z", floor_z_param, 0.3);
+node_.param("grid_map/ceiling_z", ceiling_z_param, 3.0);
+int min_density;  // 至少多少个邻近占据体素才认为是真实障碍
+node_.param("grid_map/min_density_threshold", min_density, 2);  // 默认至少2个邻近点
+
+ROS_INFO_THROTTLE(5.0, "Using density-aware column inflation: floor_z=%.2f, ceiling_z=%.2f, min_density=%d",
+                  floor_z_param, ceiling_z_param, min_density);
+
+// 转换高度为体素索引
+int floor_z_id = (floor_z_param - mp_.map_origin_(2)) * mp_.resolution_inv_;
+int ceiling_z_id = (ceiling_z_param - mp_.map_origin_(2)) * mp_.resolution_inv_;
+
+// 限制在局部边界内
+floor_z_id = std::max(floor_z_id, md_.local_bound_min_(2));
+ceiling_z_id = std::min(ceiling_z_id, md_.local_bound_max_(2));
+
+if (floor_z_id >= ceiling_z_id) {
+  ROS_WARN_THROTTLE(1.0, "[GridMap] Invalid z-range for column inflation: %.2f >= %.2f",
+                    floor_z_param, ceiling_z_param);
+} else {
+  // Step 1: 构建二维 (x,y) 平面的占据计数图（用于密度估计）
+  std::unordered_map<int, int> xy_occupancy_count;  // key: x + y * big_num, value: 占据次数
+  const int neighborhood_radius_voxel = 1;  // 检查周围 3x3 区域
+
+  for (int x = md_.local_bound_min_(0); x <= md_.local_bound_max_(0); ++x) {
+    for (int y = md_.local_bound_min_(1); y <= md_.local_bound_max_(1); ++y) {
+      for (int z = floor_z_id; z <= ceiling_z_id; ++z) {
+        if (md_.occupancy_buffer_inflate_[toAddress(x, y, z)] == 1) {
+          int key = x * 10000 + y;  // 简单哈希，假设地图小于10000x10000
+          xy_occupancy_count[key]++;
+        }
+      }
+    }
+  }
+
+  // Step 2: 对每个 (x,y) 列计算其局部密度（3x3 邻域内的总占据体素数）
+  int column_inflated_count = 0;
+
+  for (int x = md_.local_bound_min_(0); x <= md_.local_bound_max_(0); ++x) {
+    for (int y = md_.local_bound_min_(1); y <= md_.local_bound_max_(1); ++y) {
+
+      // 计算 (x,y) 及其周围 3x3 范围内的占据体素总数
+      int local_density = 0;
+      for (int dx = -neighborhood_radius_voxel; dx <= neighborhood_radius_voxel; ++dx) {
+        for (int dy = -neighborhood_radius_voxel; dy <= neighborhood_radius_voxel; ++dy) {
+          int nx = x + dx;
+          int ny = y + dy;
+          int key = nx * 10000 + ny;
+          if (xy_occupancy_count.find(key) != xy_occupancy_count.end()) {
+            local_density += xy_occupancy_count[key];
+          }
+        }
+      }
+
+      // 只有当局部密度达到阈值时才进行列式膨胀
+      if (local_density >= min_density) {
+        for (int z = floor_z_id; z <= ceiling_z_id; ++z) {
+          md_.occupancy_buffer_inflate_[toAddress(x, y, z)] = 1;
+        }
+        column_inflated_count++;
+      }
+    }
+  }
+
+  ROS_INFO_THROTTLE(5.0, "[GridMap] Density-based column inflation: %d columns inflated (threshold=%d)",
+                    column_inflated_count, min_density);
+}
+// ==================== 密度感知列式膨胀结束 ====================
 
   // add virtual ceiling to limit flight height
   if (mp_.virtual_ceil_height_ > -0.5) {
