@@ -803,6 +803,15 @@ void GridMap::odomCallback(const nav_msgs::OdometryConstPtr &odom)
   md_.camera_pos_(1) = odom->pose.pose.position.y;
   md_.camera_pos_(2) = odom->pose.pose.position.z;
 
+  if(md_.camera_pos_(2) < mp_.ground_height_)
+  {
+    md_.camera_pos_(2) = mp_.ground_height_ + 0.01;
+  }
+  else if (md_.camera_pos_(2) > mp_.ground_height_ + z_size)
+  {
+    md_.camera_pos_(2) = mp_.ground_height_ + z_size - 0.01;
+  }
+
   md_.has_odom_ = true;
 }
 

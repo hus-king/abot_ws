@@ -10,7 +10,7 @@ ros::Subscriber ego_planner_mode_sub; // 新增：订阅器
 void ego_planner_mode_callback(const std_msgs::Int32::ConstPtr &msg)
 {
     ego_mode = msg->data;
-    ROS_INFO("[BsplineOptimizer] Received ego_planner_mode update: %d", ego_mode);
+    // ROS_INFO("[BsplineOptimizer] Received ego_planner_mode update: %d", ego_mode);
 }
 
 namespace ego_planner

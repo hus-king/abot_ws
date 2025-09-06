@@ -72,7 +72,7 @@
     <!-- 不同的目标点给定方式 -->
     <param name="fsm/flight_type" value="$(arg flight_type)" type="int"/>
     <!-- 重规划时间间隔，如果要增大规划频率，则减小该数值 -->
-    <param name="fsm/thresh_replan_time" value="1.0" type="double"/>
+    <param name="fsm/thresh_replan_time" value="0.5" type="double"/>
     <!-- 重规划阈值：距离终点小于该阈值时，停止规划 -->
     <!-- waypoint yuzhi -->
     <param name="fsm/thresh_no_replan_meter" value="0.3" type="double"/>
@@ -102,17 +102,20 @@
     <param name="grid_map/resolution"      value="0.1" /> 
     <param name="grid_map/map_size_x"   value="$(arg map_size_x_)" /> 
     <param name="grid_map/map_size_y"   value="$(arg map_size_y_)" /> 
-    <param name="grid_map/map_size_z"   value="$(arg map_size_z_)" /> 
+    <param name="grid_map/map_size_z"   value="$(arg map_size_z_)" />  <!-- 0.95 -->
     <param name="grid_map/map_size_z_door"   value="$(arg map_size_z_door)" />
     <param name="grid_map/map_origin_x"   value="$(arg map_origin_x_)" /> 
     <param name="grid_map/map_origin_y"   value="$(arg map_origin_y_)" /> 
+    <param name="grid_map/floor_z"   value="0.3" /> 
+    <param name="grid_map/ceiling_z"   value="3.0" />
+    <param name="grid_map/min_density_threshold" value="5"/>
     <!-- 地图更新距离 -->
     <!-- 点云数据会在特定范围内截断，只使用特定范围的信息，超出范围的数据丢弃 -->
     <param name="grid_map/local_update_range_x"  value="5.5" /> 
     <param name="grid_map/local_update_range_y"  value="5.5" /> 
     <param name="grid_map/local_update_range_z"  value="4.5" /> 
     <!-- 膨胀距离 -->
-    <param name="grid_map/obstacles_inflation"     value="0.25" /> <!--0.4-->
+    <param name="grid_map/obstacles_inflation"     value="0.20" /> <!--0.4-->
     <param name="grid_map/obstacles_inflation_door"     value="0.2" /> <!--穿门模式-->
     <param name="grid_map/local_map_margin" value="5"/>
     <!-- ground_height -->
@@ -137,7 +140,7 @@
     <param name="grid_map/p_min"  value="0.12"/>
     <param name="grid_map/p_max"  value="0.90"/>
     <param name="grid_map/p_occ"  value="0.80"/>
-    <param name="grid_map/min_ray_length" value="0.1"/>
+    <param name="grid_map/min_ray_length" value="0.3"/>
     <param name="grid_map/max_ray_length" value="4.5"/>
 
     <param name="grid_map/virtual_ceil_height"   value="10"/>
@@ -181,7 +184,7 @@
     <param name="bspline/limit_acc" value="$(arg max_acc)" type="double"/>
     <param name="bspline/limit_ratio" value="1.1" type="double"/>
     <!-- ego巡航模式——mode 1 -->
-    <param name="optimization/dist0_1" value="0.40" type="double"/><!--巡航模式，更加安全0.575-->
+    <param name="optimization/dist0_1" value="0.22" type="double"/><!--巡航模式，更加安全0.575-->
     <!-- ego穿门模式——mode 2 -->
     <param name="optimization/dist0_2" value="0.25" type="double"/><!--穿门模式-->
   </node>

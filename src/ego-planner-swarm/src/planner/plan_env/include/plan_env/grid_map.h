@@ -98,6 +98,9 @@ struct MappingData {
   Eigen::Vector3d camera_pos_, last_camera_pos_;
   Eigen::Matrix3d camera_r_m_, last_camera_r_m_;
   Eigen::Matrix4d cam2body_;
+  
+  // mavros odometry pose data
+  Eigen::Vector3d mavros_pose_;
 
   // depth image data
 
@@ -199,6 +202,7 @@ private:
   void depthOdomCallback(const sensor_msgs::ImageConstPtr& img, const nav_msgs::OdometryConstPtr& odom);
   void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& img);
   void odomCallback(const nav_msgs::OdometryConstPtr& odom);
+  void odomPoseCallback(const nav_msgs::OdometryConstPtr& odom);
 
   // update occupancy by raycasting
   void updateOccupancyCallback(const ros::TimerEvent& /*event*/);
@@ -232,6 +236,7 @@ private:
   SynchronizerImageOdom sync_image_odom_;
 
   ros::Subscriber indep_cloud_sub_, indep_odom_sub_, extrinsic_sub_;
+  ros::Subscriber mavros_odom_sub_;  // 新增：mavros odometry 订阅器
   ros::Publisher map_pub_, map_inf_pub_;
   ros::Timer occ_timer_, vis_timer_;
 

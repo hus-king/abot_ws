@@ -389,16 +389,18 @@ int main(int argc, char **argv)
             mavros_setpoint_pos_pub.publish(setpoint_raw);
             ros::spinOnce();
             rate.sleep();
-            cout<<"checking"<<endl;
+            // cout<<"checking"<<endl;
           }
+          current_position_cruise_flag = false;
           now_yaw = calculate_yaw(target_array_x[index], target_array_y[index]);
           while(!current_position_cruise(0, 0, ALTITUDE, now_yaw, err_max))
           {
             mavros_setpoint_pos_pub.publish(setpoint_raw);
             ros::spinOnce();
             rate.sleep();
-            cout<<"checking"<<endl;
+            // cout<<"checking"<<endl;
           }
+          current_position_cruise_flag = false;
           ego_check = true;
         }
         else{
@@ -410,7 +412,8 @@ int main(int argc, char **argv)
               {
                 if(index == 3)
                 {
-                  mission_num = 7; // 
+                  // mission_num = 7;
+                  mission_num = 9;
                   ego_check = false; // 重置ego_check状态
                   last_request = ros::Time::now();
                 }
@@ -615,7 +618,8 @@ int main(int argc, char **argv)
           }
           else
           {
-            mission_num = 7;
+            // mission_num = 7;
+            mission_num = 9;
             start_checking = false; // 重置start_checking状态
             last_request = ros::Time::now();
           }
@@ -713,7 +717,8 @@ int main(int argc, char **argv)
             }
             else
             {
-              mission_num = 7;
+              // mission_num = 7;
+              mission_num = 9;
               last_request = ros::Time::now();
             }
           }
@@ -729,7 +734,8 @@ int main(int argc, char **argv)
           }
           else
           {
-            mission_num = 7;
+            // mission_num = 7;
+            mission_num = 9;
             last_request = ros::Time::now();
           }
           lib_time_init_flag = true;
@@ -749,6 +755,7 @@ int main(int argc, char **argv)
             rate.sleep();
             cout<<"checking"<<endl;
           }
+          current_position_cruise_flag = false;
           ego_check = true;
         }
         else{
@@ -769,6 +776,7 @@ int main(int argc, char **argv)
         if(current_position_cruise(0, 0, DOOR_ALTITUDE, 0, err_max)){
           if(lib_time_record_func(0.5, ros::Time::now())){
             mission_num = 702;
+            current_position_cruise_flag = false;
             last_request = ros::Time::now();
           }
         }
@@ -815,6 +823,7 @@ int main(int argc, char **argv)
         if(current_position_cruise(0, 0, DOOR_ALTITUDE, -1.57, err_max)){
           if(lib_time_record_func(0.5, ros::Time::now())){
             mission_num = 72;
+            current_position_cruise_flag = false;
             last_request = ros::Time::now();
           }
         }
@@ -928,6 +937,38 @@ int main(int argc, char **argv)
         }
         break;
 
+      case 9: //直接悬停准备降落
+        if(current_position_cruise(0, 0, ALTITUDE, 0, err_max)){
+          if(lib_time_record_func(3.0, ros::Time::now())){
+            mission_num = 91;
+            current_position_cruise_flag = false;
+            last_request = ros::Time::now();
+          }
+        }
+        else if(ros::Time::now() - last_request >= ros::Duration(10.0))
+        {
+          mission_num = 91;
+          current_position_cruise_flag = false;
+          last_request = ros::Time::now();
+        }
+        break;
+      
+      case 91: //下降到降落高度
+        if(current_position_cruise(0, 0, LANDING_ALTITUDE, 0, err_max)){
+          if(lib_time_record_func(3.0, ros::Time::now())){
+            mission_num = -1;
+            current_position_cruise_flag = false;
+            last_request = ros::Time::now();
+          }
+        }
+        else if(ros::Time::now() - last_request >= ros::Duration(5.0))
+        {
+          mission_num = -1;
+          current_position_cruise_flag = false;
+          last_request = ros::Time::now();
+        }
+        break;
+
       case 10: // 降落点悬停
         if(mission_pos_cruise(target7_x, target7_y, DOOR_ALTITUDE, -1.57, err_max))
         {
@@ -952,7 +993,7 @@ int main(int argc, char **argv)
         arm_cmd.request.value = false;
         if(mission_pos_cruise(target7_x, target7_y, LANDING_ALTITUDE, now_yaw, err_max))
         {
-          if(lib_time_record_func(2.0, ros::Time::now()))
+          if(lib_time_record_func(3.0, ros::Time::now()))
           {
             mission_num = -1; // 任务结束
           }

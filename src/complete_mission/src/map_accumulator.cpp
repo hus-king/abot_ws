@@ -50,22 +50,22 @@ public:
         private_nh_.param("input_topic", input_topic_, std::string("/cloud_registered"));
         private_nh_.param("map_frame", map_frame_, std::string("camera_init"));
         private_nh_.param("base_frame", base_frame_, std::string("base_link"));
-        private_nh_.param("voxel_leaf_size", voxel_leaf_size_, 0.05);
-        private_nh_.param("max_points", max_points_, 5000000); // 500万点
+        private_nh_.param("voxel_leaf_size", voxel_leaf_size_, 0.1);
+        private_nh_.param("max_points", max_points_, 50000); // 500万点
         private_nh_.param("save_directory", save_directory_, std::string("/tmp/fastlio_maps"));
         private_nh_.param("save_interval", save_interval_, 30.0); // 30秒保存一次
         private_nh_.param("enable_realtime_preview", enable_realtime_preview_, true);
         private_nh_.param("preview_rate", preview_rate_, 20.0); // 20Hz预览
-        private_nh_.param("time_window", time_window_, 10.0); // 新增：时间窗口参数，默认10秒
+        private_nh_.param("time_window", time_window_, 5000.0); // 新增：时间窗口参数，默认10秒
         
         // 地图ROI过滤参数
-        private_nh_.param("enable_map_roi_filter", map_roi_params_.enable_roi_filter, false);
-        private_nh_.param("map_roi_min_x", map_roi_params_.min_x, -50.0);
-        private_nh_.param("map_roi_max_x", map_roi_params_.max_x, 50.0);
-        private_nh_.param("map_roi_min_y", map_roi_params_.min_y, -50.0);
-        private_nh_.param("map_roi_max_y", map_roi_params_.max_y, 50.0);
-        private_nh_.param("map_roi_min_z", map_roi_params_.min_z, -10.0);
-        private_nh_.param("map_roi_max_z", map_roi_params_.max_z, 10.0);
+        private_nh_.param("enable_map_roi_filter", map_roi_params_.enable_roi_filter, true);
+        private_nh_.param("map_roi_min_x", map_roi_params_.min_x, -1.0);
+        private_nh_.param("map_roi_max_x", map_roi_params_.max_x, 5.00);
+        private_nh_.param("map_roi_min_y", map_roi_params_.min_y, -5.0);
+        private_nh_.param("map_roi_max_y", map_roi_params_.max_y, 5.0);
+        private_nh_.param("map_roi_min_z", map_roi_params_.min_z, 0.3);
+        private_nh_.param("map_roi_max_z", map_roi_params_.max_z, 1.3);
 
         // *** 新增：DisROI过滤参数 ***
         private_nh_.param("enable_disroi_filter", disroi_params_.enable_disroi_filter, false);
@@ -73,8 +73,8 @@ public:
         private_nh_.param("disroi_max_x", disroi_params_.max_x, 2.0);
         private_nh_.param("disroi_min_y", disroi_params_.min_y, -2.0);
         private_nh_.param("disroi_max_y", disroi_params_.max_y, 2.0);
-        private_nh_.param("disroi_min_z", disroi_params_.min_z, -1.0);
-        private_nh_.param("disroi_max_z", disroi_params_.max_z, 3.0);
+        private_nh_.param("disroi_min_z", disroi_params_.min_z, 0.0);
+        private_nh_.param("disroi_max_z", disroi_params_.max_z, 1.8);
 
         // 创建保存目录
         boost::filesystem::create_directories(save_directory_);
@@ -266,6 +266,10 @@ void MapAccumulatorWithDisROI::cloudCallback(const sensor_msgs::PointCloud2Const
 
     // 添加到累积地图 (内部会处理ROI过滤)
     addCloudToMap(transformed_cloud);
+
+    // 实时输出当前累积地图点云总数
+    ROS_INFO_THROTTLE(1.0, "[MapAccumulator] Current frame points: %zu, accumulated map points: %zu", 
+        transformed_cloud ? transformed_cloud->size() : 0, accumulated_cloud_->size());
 
     // 实时预览
     if (enable_realtime_preview_ && 

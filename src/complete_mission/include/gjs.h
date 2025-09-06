@@ -31,8 +31,8 @@ using namespace std;
 #define ALTITUDE 0.8
 #define VIEW_ALTITUDE 1.7
 #define DOOR_ALTITUDE 0.4
-#define LANDING_ALTITUDE 0.20
-#define CATAPULT_ALTITUDE 0.30
+#define LANDING_ALTITUDE 0.15
+#define CATAPULT_ALTITUDE 0.20
 #define QR_ALTITUDE 0.40
 #define RING_HEIGHT 1.50
 #define TANK_ALTITUDE 1.9
@@ -190,15 +190,17 @@ bool current_position_cruise(float x, float y, float z, float yaw, float error_m
 	tf::Quaternion quat;
 	tf::quaternionMsgToTF(local_pos.pose.pose.orientation, quat);
 	tf::Matrix3x3(quat).getRPY(a, b, current_yaw);
-	ROS_WARN("current_yaw: %.2f", current_yaw * 180.0 / M_PI);
+	// ROS_WARN("current_yaw: %.2f", current_yaw * 180.0 / M_PI);
 	float yaw_diff = yaw - current_yaw;
 	if (yaw_diff > M_PI) yaw_diff -= 2 * M_PI;
 	else if (yaw_diff < -M_PI) yaw_diff += 2 * M_PI;
-	setpoint_raw.yaw_rate = yaw_diff * 0.8; // 设置yaw_rate，P控制
+	setpoint_raw.yaw_rate = yaw_diff * 1.2; // 设置yaw_rate，P控制
+	ROS_INFO("now_position:(%f,%f)  Flying to ( %.2f, %.2f )", local_pos.pose.pose.position.x ,local_pos.pose.pose.position.y,x + current_position_cruise_last_position_x, y + current_position_cruise_last_position_y);
+	ROS_INFO("now_yaw: %.2f,target_yaw: %.2f", current_yaw * 180.0 / M_PI , yaw * 180.0 / M_PI);
 	if (fabs(local_pos.pose.pose.position.x - current_position_cruise_last_position_x - x) < error_max && fabs(local_pos.pose.pose.position.y - current_position_cruise_last_position_y - y) < error_max && fabs(local_pos.pose.pose.position.z - z) < error_max && fabs(current_yaw - yaw) < 0.1)
 	{
 		ROS_INFO("到达目标点，巡航点任务完成");
-		current_position_cruise_flag = false;
+		// current_position_cruise_flag = false;
 		setpoint_raw.yaw_rate = 0.0; // 重置yaw_rate
 		setpoint_raw.type_mask = /*1 + 2 + 4 */ +8 + 16 + 32 + 64 + 128 + 256 + 512 + /*1024 + */2048;
 		setpoint_raw.yaw = yaw; // 确保最终yaw角度正确
@@ -224,10 +226,10 @@ bool found_tank = false;      // 移动目标发现标志：累计检测到tank�
 std::string have_found;       // 最近检测到的目标类别名称
 float box_target_x;           // 目标在世界坐标系中的X坐标（米）
 float box_target_y;           // 目标在世界坐标系中的Y坐标（米）
-float fx = 531.256452402983;
-float fy = 531.062457146004;
-float cx = 331.091420250469;
-float cy = 248.782850955389;
+float fx = 375.3823008482600;
+float fy = 374.5190469867767;
+float cx = 306.9950918902645;
+float cy = 228.9047801930678;
 
 std::string target_data[3] = {target_1,target_2,target_3};  // 目标检测类别数组，只检测车辆和桥梁和碉堡三种目标
 
@@ -1452,14 +1454,15 @@ void rec_traj_cb(const std_msgs::Bool::ConstPtr &msg);
 void rec_traj_cb(const std_msgs::Bool::ConstPtr &msg)
 {
 	rec_traj_flag = msg->data;
+	ROS_WARN("rec_traj_flag: %d", rec_traj_flag);
 }
 
 void PI_attitude_control()
 {                                                      
 	setpoint_raw.coordinate_frame = 1;
 	setpoint_raw.type_mask = 0b101111100011; // vx vy z yaw
-	setpoint_raw.velocity.x = 0.55 * ego_sub.velocity.x + (ego_sub.position.x - local_pos.pose.pose.position.x) * 1.1;
-	setpoint_raw.velocity.y = 0.55 * ego_sub.velocity.y + (ego_sub.position.y - local_pos.pose.pose.position.y) * 1.1;
+	setpoint_raw.velocity.x = 0 * ego_sub.velocity.x + (ego_sub.position.x - local_pos.pose.pose.position.x) * 1.3;
+	setpoint_raw.velocity.y = 0 * ego_sub.velocity.y + (ego_sub.position.y - local_pos.pose.pose.position.y) * 1.3;
 	if(now_mode == 1)//穿门模式
 	{
 		setpoint_raw.position.z = DOOR_ALTITUDE;
@@ -1514,7 +1517,7 @@ bool pub_ego_goal(float x, float y, float z, float err_max, int first_target,int
 	tf::Matrix3x3(quat).getRPY(a, b, current_yaw);
 
 	geometry_msgs::PoseStamped target_point;
-	if (pub_ego_goal_flag == false)
+	if (pub_ego_goal_flag == false || rec_traj_flag == false)
 	{
 		pub_ego_goal_flag = true;
 		target_point.pose.position.x = x;
@@ -1538,12 +1541,12 @@ bool pub_ego_goal(float x, float y, float z, float err_max, int first_target,int
 			if (ego_sub.position.z > map_size_z)
 			{
 				setpoint_raw.position.z = map_size_z;
-				std::cout << "exceed map_size_z" << std::endl;
+				// std::cout << "exceed map_size_z" << std::endl;
 			}
 			else if (ego_sub.position.z < ground_height)
 			{
 				setpoint_raw.position.z = ground_height;
-				std::cout << "lower than ground height" << std::endl;
+				// std::cout << "lower than ground height" << std::endl;
 			}
 		}
         if (first_target == 1)
